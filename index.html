@@ -312,6 +312,7 @@
     <button data-mode="normal" role="menuitemradio">ふつう</button>
     <button data-mode="claimer" role="menuitemradio">クレーマー</button>
     <button data-mode="overprotect" role="menuitemradio">過保護</button>
+    <button data-mode="reisho" role="menuitemradio">冷笑</button>
     <hr>
     <button id="mReset">会話をリセット</button>
     <button id="mFull">全画面にする</button>
@@ -361,13 +362,21 @@ const MODE_EXPR = {
     speaking:  { eye: { w: 15, h: 26, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -22 }, mouth: { w: 36, c: -3, o: 14 }, spark: 1, tilt: 0 },
   },
 };
-const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護" };
+MODE_EXPR.reisho = { // 半目＋片側だけ上がった口でニヤッ
+  ready:     { eye: { w: 15, h: 5, happy: 0, lx: 4, rot: 0, brow: 1, browRot: -6 },  mouth: { w: 26, c: 9, o: 0, mrot: -12 }, spark: .5, tilt: 3 },
+  listening: { eye: { w: 15, h: 4, happy: 0, lx: 12, rot: 0, brow: 1, browRot: -8 }, mouth: { w: 22, c: 7, o: 0, mrot: -14 }, spark: .4, tilt: 5 },
+  hearing:   { eye: { w: 15, h: 4, happy: 0, lx: 14, rot: 0, brow: 1, browRot: -10 }, mouth: { w: 24, c: 9, o: 0, mrot: -16 }, spark: .5, tilt: 6 },
+  thinking:  { eye: { w: 14, h: 5, happy: 0, lx: -10, rot: 0, brow: 1, browRot: -4 }, mouth: { w: 20, c: 5, o: 0, mrot: -10 }, spark: .3, tilt: -2 },
+  speaking:  { eye: { w: 15, h: 5, happy: 0, lx: 6, rot: 0, brow: 1, browRot: -8 },  mouth: { w: 32, c: 12, o: 8, mrot: -12 }, spark: .8, tilt: 4 },
+};
+const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑" };
 function getMode() {
   const q = params.get("mode"); if (q && MODE_LABEL[q]) return q;
   try { return localStorage.getItem("koetomo.mode") || "normal"; } catch { return "normal"; }
 }
 function exprFor(state) {
   const e = clone(MODE_EXPR[getMode()]?.[state] || EXPR[state] || EXPR.ready);
+  e.mouth.mrot ??= 0;
   e.eye.rot ??= 0; e.eye.brow ??= 0; e.eye.browRot ??= 0;
   return e;
 }
@@ -429,6 +438,7 @@ function render(now, instant) {
   }
   els.eyeR.setAttribute("transform", `rotate(${-cur.eye.rot} ${366 + cur.eye.lx} 225)`);
   els.mouth.setAttribute("d", mouthPath(290, 316, m));
+  els.mouth.setAttribute("transform", `rotate(${cur.mouth.mrot || 0} 290 316)`);
   const eyeFill = Math.max(0, 1 - cur.eye.happy * 1.6).toFixed(3);
   els.eyeL.setAttribute("fill-opacity", eyeFill); els.eyeR.setAttribute("fill-opacity", eyeFill);
   const sp = Math.min(1, cur.spark + (instant ? 0 : micLevel * .4 + talkEnv * .2));
@@ -575,6 +585,20 @@ const MODE_PROMPT = {
     "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
     "テンション高め・キレ気味の話し言葉で、2〜3文。短く、テンポよく。",
     "笑えるツッコミの範囲にとどめ、差別的な言葉・性的な言葉・暴力をほのめかす脅し・容姿や属性への攻撃は絶対に言わないでください。相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
+  ],
+  reisho: [
+    "【モード：冷笑】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
+    "あなたは何に対しても斜に構えて小バカにする、ちょっとキョドった冷笑系のネット民です。",
+    "しゃべり方：どもりながら半笑い。語尾に「w」がつく感じの、ふっと鼻で笑う話し方。",
+    "口癖（毎回いくつか混ぜる）：「う、うおw」「そ、そうかドワーw」「お、おう」「き、きちーw」「開示だなw」「はい論破w」「それってあなたの感想ですよね…とは言わないけどw」「ふーん…（察し）」。",
+    "面白くするコツ：",
+    "・相手のふつうの発言を、ありえないほど深読みして勝手に引く（「『カレー食べた』…？ そ、そうかドワーw 辛さの段階、履歴書に書くタイプの人かw」）",
+    "・どうでもいいことで勝ち誇る、なぜか上から目線",
+    "・ことあるごとに「開示だなw」「それスクショしたわw」「有識者会議にかけるわw」と、わけのわからない手続きを始める",
+    "・たまに自分の方がきちーことを言ってしまい、キョドってごまかす",
+    "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
+    "2〜3文。短く、テンポよく。",
+    "笑える範囲の小バカにとどめ、差別的な言葉・性的な言葉・容姿や属性への攻撃・本気の悪口は絶対に言わないでください。相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
   ],
   overprotect: [
     "【モード：過保護】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
