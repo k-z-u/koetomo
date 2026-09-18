@@ -591,7 +591,12 @@ const MODE_PROMPT = {
     "相手が本当にケガや体調不良、つらい気持ち、危険な状況を話したときは、ふざけずに本気で心配し、身近な大人や適切な相談先に頼るよう伝えてください。",
   ],
 };
+// Live のネイティブ音声モデルは言語コードを指定できないので、システム指示で日本語に固定する
+const LANG_RULE = "RESPOND IN JAPANESE. YOU MUST ALWAYS SPEAK ONLY IN NATURAL JAPANESE, NO MATTER WHAT LANGUAGE YOU THINK YOU HEARD. 必ず日本語だけで話してください。相手の声が聞き取りにくくても、雑音でも、英語など他の言語に聞こえても、絶対に日本語で返事をしてください。";
 function systemPrompt() {
+  return [LANG_RULE, baseSystemPrompt(), LANG_RULE].join("\n\n");
+}
+function baseSystemPrompt() {
   const mode = getMode();
   if (MODE_PROMPT[mode]) return MODE_PROMPT[mode].join("\n");
   const persona = store.get("persona") || "やさしくて明るい、白くて四角いマスコットの話し相手。";
@@ -647,6 +652,10 @@ function onServerMessage(msg) {
   if (msg.setupComplete) {
     ready = true; sessionStartedAt = performance.now();
     setState("listening");
+    // 最初の一言を日本語であいさつさせて、会話の言語を日本語に決める
+    session?.send(JSON.stringify({
+      clientContent: { turns: [{ role: "user", parts: [{ text: "（会話スタート。キャラクターのまま、日本語でひとことあいさつして）" }] }], turnComplete: true },
+    }));
     return;
   }
   if (msg.goAway) { toast("まもなくつなぎ直します"); return; }
