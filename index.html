@@ -88,6 +88,8 @@
     transition: filter .6s, opacity .6s;
   }
   .app.away #mascot { opacity: .82; }
+  #mascot3d { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
+  .app.view3d #mascot { display: none; }
 
   /* ---- controls ---- */
   .controls {
@@ -250,6 +252,7 @@
         <text x="600" y="-10" font-size="34">z</text>
       </g>
     </svg>
+    <canvas id="mascot3d" hidden></canvas>
   </main>
 
   <nav class="controls" id="controls" data-vis="shown">
@@ -317,6 +320,7 @@
     <button data-mode="inbou" role="menuitemradio">陰謀論</button>
     <hr>
     <button id="mReset">会話をリセット</button>
+    <button id="m3d" role="menuitemcheckbox">3D 表示</button>
     <button id="mFull">全画面にする</button>
     <button id="mForget">API キーを削除</button>
   </div>
@@ -328,6 +332,12 @@
   <button class="btn primary" id="rotateFull">全画面で横向きにする</button>
 </div>
 
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
 <script type="module">
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -462,6 +472,41 @@ function render(now, instant) {
   els.sparks.setAttribute("transform", `translate(${(1 - sp) * -18} ${(1 - sp) * 18})`);
   els.zzz.setAttribute("opacity", appState === "away" ? (.55 + Math.sin(now / 700) * .35).toFixed(2) : 0);
   els.shadow.setAttribute("rx", (250 - bob * 2).toFixed(1));
+
+  if (mascot3d && view3d) {
+    mascot3d.update({
+      now, state: appState, tilt: cur.tilt, talkEnv, micLevel,
+      face: {
+        eyes: [
+          { d: els.eyeL.getAttribute("d"), rot: cur.eye.rot, x: 214 + cur.eye.lx },
+          { d: els.eyeR.getAttribute("d"), rot: -cur.eye.rot, x: 366 + cur.eye.lx },
+        ],
+        eyeFill: +eyeFill,
+        brows: [els.browL, els.browR].map((el, i) => {
+          const x = (i ? 366 : 214) + cur.eye.lx, y = 225 - Math.max(cur.eye.h, 14) - 34;
+          return { d: el.getAttribute("d"), rot: (i ? -1 : 1) * cur.eye.browRot, x, y };
+        }),
+        browOpacity: Math.max(0, Math.min(1, cur.eye.brow)),
+        mouth: els.mouth.getAttribute("d"), mouthRot: cur.mouth.mrot || 0,
+      },
+    });
+  }
+}
+
+/* ============ 3D 表示 ============ */
+let mascot3d = null, view3d = false, loading3d = null;
+async function setView3d(on) {
+  view3d = on;
+  try { localStorage.setItem("koetomo.view3d", on ? "1" : "0"); } catch {}
+  $("m3d").setAttribute("aria-checked", String(on));
+  if (on && !mascot3d) {
+    loading3d ??= import("./mascot3d.js").then((m) => m.createMascot3D($("mascot3d"), "3d/koetomo.glb"));
+    try { mascot3d = await loading3d; }
+    catch (e) { console.error(e); loading3d = null; view3d = false; toast("3D を読み込めませんでした"); $("m3d").setAttribute("aria-checked", "false"); return; }
+  }
+  if (view3d !== on) return;
+  document.getElementById("app").classList.toggle("view3d", on);
+  mascot3d?.setVisible(on);
 }
 
 let listenTimer = 0;
@@ -900,7 +945,9 @@ function stopMic() {
 }
 
 const outBuf = new Uint8Array(512);
+let fakeTalk = false; // ?debug=1 のときだけ使う口パク確認用
 function readLevel() {
+  if (fakeTalk) { const t = performance.now() / 1000; outLevel = Math.max(0, .45 + .4 * Math.sin(t * 9) * Math.sin(t * 2.3) + .15 * Math.sin(t * 23)); return; }
   if (outAnalyser && playing.size) {
     outAnalyser.getByteTimeDomainData(outBuf);
     let sum = 0; for (const v of outBuf) { const d = (v - 128) / 128; sum += d * d; }
@@ -942,6 +989,8 @@ $("btnMic").onclick = async () => {
 };
 $("btnOff").onclick = () => { stopAll(); setState("off"); };
 $("btnAway").onclick = () => { stopAll(); setState("away"); };
+$("mascot3d").addEventListener("click", () => $("mascot").dispatchEvent(new Event("click")));
+$("m3d").onclick = () => { $("menuScrim").classList.remove("open"); setView3d(!view3d); };
 $("mascot").addEventListener("click", () => {
   if (appState === "away" || appState === "sad") { setState("ready"); return; }
   if (appState === "speaking") { stopPlayback(); setState("listening"); } // 話をさえぎる
@@ -971,6 +1020,8 @@ document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("clic
 }));
 applyMode();
 
+if (DEBUG) window.__koe = { setState, talk(on) { fakeTalk = on; setState(on ? "speaking" : "listening"); } };
+
 /* ============ ループ ============ */
 if (MOCK) {
   const cfg = {
@@ -985,7 +1036,10 @@ if (MOCK) {
   controls.dataset.vis = cfg.vis;
   $("btnMic").setAttribute("aria-pressed", String(cfg.mic));
   render(0, true);
+  if (params.get("view") === "3d") setView3d(true).then(() => { render(performance.now(), true); document.body.dataset.ready = "1"; });
 } else {
+  { const q = params.get("view"); let saved = null; try { saved = localStorage.getItem("koetomo.view3d"); } catch {}
+    if (q === "3d" || (q !== "2d" && saved === "1")) setView3d(true); }
   setState("ready");
   wakeControls();
   const loop = (now) => { readLevel(); render(now, false); requestAnimationFrame(loop); };
