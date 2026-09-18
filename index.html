@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F7F9">
+<title>こえとも</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F7F9;
+    --surface: #FFFFFF;
+    --ink: #17191D;
+    --ink-soft: #5B6068;
+    --ink-faint: #9AA0A8;
+    --line: #E7E9ED;
+    --cyan: #16C4DA;
+    --cyan-tint: #E3F8FB;
+    --shadow: 0 10px 40px rgba(20, 30, 45, 0.07), 0 2px 8px rgba(20, 30, 45, 0.04);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(ellipse at 50% 45%, #FBFCFD 0%, var(--bg) 70%);
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .app { position: fixed; inset: 0; }
+
+  /* ---- top bar ---- */
+  .top {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(18px, env(safe-area-inset-top)) max(28px, calc(env(safe-area-inset-right) + 16px)) 0 max(28px, calc(env(safe-area-inset-left) + 16px));
+    height: calc(max(18px, env(safe-area-inset-top)) + 64px);
+    z-index: 5;
+  }
+  .logo { width: 44px; height: 44px; display: grid; place-items: center; }
+  .top-actions { display: flex; gap: 10px; }
+  .icon-btn {
+    width: 48px; height: 48px; border: 0; border-radius: 50%;
+    background: transparent; color: var(--ink); display: grid; place-items: center;
+    cursor: pointer; transition: background .2s;
+  }
+  .icon-btn:hover { background: rgba(0,0,0,.04); }
+  .icon-btn svg { width: 26px; height: 26px; }
+
+  /* ---- mascot ---- */
+  .stage {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    padding-bottom: 7vh;
+  }
+  #mascot {
+    width: min(58vw, 72vh * 1.17);
+    height: auto;
+    overflow: visible;
+    cursor: pointer;
+    transition: filter .6s, opacity .6s;
+  }
+  .app.away #mascot { opacity: .82; }
+
+  /* ---- controls ---- */
+  .controls {
+    position: absolute; left: 50%; bottom: max(5.5vh, calc(env(safe-area-inset-bottom) + 10px));
+    transform: translateX(-50%);
+    display: flex; align-items: center;
+    padding: 9px; border-radius: 999px;
+    background: rgba(255,255,255,.92);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: opacity .9s ease, transform .9s ease;
+    z-index: 4;
+  }
+  .controls[data-vis="dim"] { opacity: .2; }
+  .controls[data-vis="hidden"] { opacity: 0; pointer-events: none; transform: translate(-50%, 12px); }
+  .ctl {
+    display: flex; align-items: center; gap: 10px;
+    height: clamp(48px, 10vh, 64px);
+    padding: 0 clamp(20px, 3vw, 34px);
+    border: 0; border-radius: 999px;
+    background: transparent; color: var(--ink);
+    font: 500 clamp(15px, 2vh, 18px)/1 inherit; font-family: inherit; letter-spacing: .04em;
+    cursor: pointer; transition: background .25s, color .25s;
+    white-space: nowrap;
+  }
+  .ctl svg { width: 24px; height: 24px; flex: none; }
+  .ctl:hover { background: #F4F5F7; }
+  .ctl[aria-pressed="true"] { background: var(--cyan-tint); color: #0A8FA2; }
+  .sep { width: 1px; height: 26px; background: var(--line); margin: 0 4px; }
+
+  /* ---- toast ---- */
+  .toast {
+    position: absolute; left: 50%; top: max(24px, env(safe-area-inset-top));
+    transform: translate(-50%, -10px);
+    padding: 11px 20px; border-radius: 999px;
+    background: var(--surface); box-shadow: var(--shadow);
+    font-size: 14px; color: var(--ink-soft);
+    opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s;
+    z-index: 20; max-width: calc(100vw - 180px); text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---- sheet (settings / menu) ---- */
+  .scrim {
+    position: fixed; inset: 0; background: rgba(246,247,249,.72);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center; z-index: 30;
+    padding: 16px;
+  }
+  .scrim.open { display: flex; }
+  .sheet {
+    width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+    background: var(--surface); border-radius: 28px; box-shadow: var(--shadow);
+    padding: 26px 30px 24px;
+  }
+  .sheet h2 { margin: 0 0 4px; font-size: 19px; font-weight: 700; letter-spacing: .03em; }
+  .sheet .lead { margin: 0 0 18px; font-size: 13px; color: var(--ink-faint); line-height: 1.6; }
+  .row { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; margin-bottom: 14px; }
+  .row label { font-size: 14px; color: var(--ink-soft); }
+  .field {
+    width: 100%; height: 44px; padding: 0 14px; border-radius: 14px;
+    border: 1px solid var(--line); background: #FAFBFC; color: var(--ink);
+    font: 400 14px/1 inherit; font-family: inherit; outline: none;
+    user-select: text; -webkit-user-select: text;
+  }
+  .field:focus { border-color: var(--cyan); background: #fff; }
+  .key-wrap { position: relative; }
+  .key-wrap .field { padding-right: 64px; }
+  .key-wrap button {
+    position: absolute; right: 6px; top: 6px; height: 32px; padding: 0 10px;
+    border: 0; border-radius: 10px; background: transparent; color: var(--ink-faint);
+    font: 500 12px/1 inherit; font-family: inherit; cursor: pointer;
+  }
+  input[type=range] { width: 100%; accent-color: var(--cyan); }
+  .note { font-size: 12px; color: var(--ink-faint); line-height: 1.7; margin: 4px 0 18px; }
+  .note a { color: #0A8FA2; }
+  .sheet-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .btn {
+    height: 44px; padding: 0 22px; border-radius: 999px; border: 0; cursor: pointer;
+    font: 500 14px/1 inherit; font-family: inherit;
+  }
+  .btn.ghost { background: #F2F3F5; color: var(--ink-soft); }
+  .btn.primary { background: var(--ink); color: #fff; }
+  .menu { width: min(320px, 100%); padding: 10px; }
+  .menu button {
+    display: block; width: 100%; text-align: left; padding: 14px 18px; border: 0; border-radius: 16px;
+    background: transparent; font: 400 15px/1 inherit; font-family: inherit; color: var(--ink); cursor: pointer;
+  }
+  .menu button:hover { background: #F4F5F7; }
+
+  /* portrait hint */
+  .rotate {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; background: var(--bg); z-index: 50;
+    color: var(--ink-soft); font-size: 15px;
+  }
+  @media (orientation: portrait) and (max-width: 700px) {
+    .rotate { display: flex; }
+  }
+  @media (max-height: 420px) {
+    .row { grid-template-columns: 100px 1fr; margin-bottom: 10px; }
+    .sheet { padding: 18px 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="top">
+    <div class="logo" aria-label="こえとも">
+      <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 8c-7.2 0-13 4.6-13 10.4 0 3.4 2 6.4 5.1 8.3L10 32l6.3-3.1c.9.2 1.8.3 2.7.3" stroke="#17191D" stroke-width="3.2"/>
+        <rect x="18" y="16" width="25" height="21" rx="10.5" fill="#fff" stroke="#16C4DA" stroke-width="3.6"/>
+      </svg>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnSettings" aria-label="設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4.9a7.6 7.6 0 0 0-2.6-1.5L14 2.4h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.4l-2.4-.9-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-.9a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4.9 2-3.4-2-1.6Z"/></svg>
+      </button>
+      <button class="icon-btn" id="btnMenu" aria-label="メニュー">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <svg id="mascot" viewBox="-30 -80 680 600" role="img" aria-label="マスコット">
+      <ellipse id="shadow" cx="290" cy="492" rx="250" ry="20" fill="#E9EBEE" opacity=".7"/>
+      <g id="charRoot">
+        <g id="feet" fill="#fff" stroke="#17191D" stroke-width="7.5" stroke-linejoin="round">
+          <path d="M162 430 L170 468 C171 477 167 481 159 482 L112 488 C101 489 96 480 103 472 L140 430 Z"/>
+          <path d="M268 430 L241 468 C236 476 239 481 249 481 L327 481 C337 481 340 476 335 468 L308 430 Z"/>
+          <path d="M416 430 L408 468 C407 477 411 481 419 482 L466 488 C477 489 482 480 475 472 L438 430 Z"/>
+        </g>
+        <path id="body" fill="#fff" stroke="#17191D" stroke-width="7.5" stroke-linejoin="round"
+          d="M42 124 C42 102 56 90 80 86 L98 83 C118 80 150 62 178 54 C192 50 205 48 225 48 L430 50 C452 51 466 58 479 70 L501 90 C511 100 521 104 533 110 C552 120 565 146 565 178 L565 332 C565 348 560 358 550 369 L500 424 C489 436 476 441 456 442 L92 439 C74 438 62 431 52 420 L28 391 C20 381 15 370 15 354 L14 300 C14 288 18 282 25 274 C33 266 42 262 42 250 Z"/>
+        <g id="face" stroke="#16C4DA" stroke-linecap="round" stroke-linejoin="round">
+          <path id="eyeL" fill="#16C4DA" stroke-width="15"/>
+          <path id="eyeR" fill="#16C4DA" stroke-width="15"/>
+          <path id="mouth" fill="#DDF6FA" stroke-width="13"/>
+        </g>
+      </g>
+      <g id="sparks" stroke="#16C4DA" stroke-width="15" stroke-linecap="round">
+        <line x1="571" y1="-34" x2="553" y2="8"/>
+        <line x1="608" y1="16" x2="574" y2="45"/>
+        <line x1="625" y1="80" x2="583" y2="92"/>
+      </g>
+      <g id="zzz" fill="#16C4DA" font-family="Noto Sans JP, sans-serif" font-weight="700" opacity="0">
+        <text x="560" y="40" font-size="46">z</text>
+        <text x="600" y="-10" font-size="34">z</text>
+      </g>
+    </svg>
+  </main>
+
+  <nav class="controls" id="controls" data-vis="shown">
+    <button class="ctl" id="btnMic" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8.5" y="2.8" width="7" height="12" rx="3.5" fill="currentColor" stroke="none"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.7"/></svg>
+      マイクオン
+    </button>
+    <span class="sep"></span>
+    <button class="ctl" id="btnOff" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15.5 10V6.3a3.5 3.5 0 0 0-6.6-1.6M8.5 9v2.3a3.5 3.5 0 0 0 5.6 2.8M5.5 11a6.5 6.5 0 0 0 10.8 4.9M18.5 11c0 .8-.1 1.5-.4 2.2M12 17.5v3.7M4 3.5l16 17"/></svg>
+      オフ
+    </button>
+    <span class="sep"></span>
+    <button class="ctl" id="btnAway" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 6.5h13v7.5a5 5 0 0 1-5 5h-3a5 5 0 0 1-5-5V6.5Z"/><path d="M16.5 9h1.7a2.6 2.6 0 0 1 0 5.2h-1.9"/></svg>
+      離席
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- settings -->
+<div class="scrim" id="settingsScrim">
+  <div class="sheet" role="dialog" aria-label="設定">
+    <h2>設定</h2>
+    <p class="lead">自分の Gemini API キーで、Gemini Live とリアルタイムに話します。</p>
+    <div class="row">
+      <label for="apiKey">API キー</label>
+      <div class="key-wrap">
+        <input class="field" id="apiKey" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
+        <button type="button" id="toggleKey">表示</button>
+      </div>
+    </div>
+    <div class="row">
+      <label for="model">モデル</label>
+      <input class="field" id="model" type="text" list="modelList" spellcheck="false" placeholder="gemini-3.8-live">
+      <datalist id="modelList"><option value="gemini-3.8-live"></option></datalist>
+    </div>
+    <div class="row">
+      <label for="voice">声</label>
+      <select class="field" id="voice"></select>
+    </div>
+    <div class="row">
+      <label for="persona">キャラ設定</label>
+      <input class="field" id="persona" type="text" placeholder="例：元気でやさしい友だち。名前は「ぷに」">
+    </div>
+    <p class="note">キーはこの端末のブラウザ（localStorage）にだけ保存され、ブラウザから Google の Gemini API へ直接送られます。共有端末では使わないでください。キーは <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> で発行できます。</p>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="settingsCancel">閉じる</button>
+      <button class="btn primary" id="settingsSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- menu -->
+<div class="scrim" id="menuScrim">
+  <div class="sheet menu" role="menu">
+    <button id="mReset">会話をリセット</button>
+    <button id="mFull">全画面にする</button>
+    <button id="mForget">API キーを削除</button>
+  </div>
+</div>
+
+<div class="rotate">
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#16C4DA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M8 3.5a9 9 0 0 1 8 0M16 3.5l-.8 2M16 3.5l-2.1-.3"/></svg>
+  スマホを横向きにしてね
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const MOCK = params.get("mock"); // "1" | "2" | "3" -> 静止モックアップ
+
+/* ============ 表情 ============ */
+// eye: w 横半径 / h 縦半径 / happy 0..1 (∩の目) / lx 視線
+// mouth: w 横半幅 / c カーブ深さ / o 開き
+const EXPR = {
+  ready:     { eye: { w: 13, h: 25, happy: 0, lx: 0 }, mouth: { w: 50, c: 26, o: 26 }, spark: 1,   tilt: 0 },
+  listening: { eye: { w: .5, h: 31, happy: 0, lx: 0 }, mouth: { w: 42, c: 17, o: 0 },  spark: .9,  tilt: -2 },
+  hearing:   { eye: { w: .5, h: 34, happy: 0, lx: 0 }, mouth: { w: 30, c: 12, o: 0 },  spark: 1,   tilt: -3.5 },
+  thinking:  { eye: { w: .5, h: 24, happy: 0, lx: 14 }, mouth: { w: 18, c: 2, o: 0 },  spark: .35, tilt: 2 },
+  speaking:  { eye: { w: 26, h: 17, happy: 1, lx: 0 }, mouth: { w: 62, c: 34, o: 18 }, spark: 1,   tilt: 0 },
+  off:       { eye: { w: 12, h: 22, happy: 0, lx: 0 }, mouth: { w: 34, c: 14, o: 0 },  spark: .15, tilt: 0 },
+  away:      { eye: { w: 24, h: 1.5, happy: 0, lx: 0 }, mouth: { w: 14, c: 5, o: 0 },  spark: 0,   tilt: 0 },
+  sad:       { eye: { w: .5, h: 20, happy: 0, lx: 0 }, mouth: { w: 30, c: -14, o: 0 }, spark: 0,   tilt: 3 },
+};
+const clone = (o) => JSON.parse(JSON.stringify(o));
+let cur = clone(EXPR.ready);
+let target = clone(EXPR.ready);
+const lerp = (a, b, t) => a + (b - a) * t;
+
+function eyePath(cx, cy, e, blink) {
+  const x = cx + e.lx, w = e.w, h = e.h * (e.happy > .5 ? 1 : blink);
+  const top = cy - h * 1.33;
+  if (e.happy > .92) return `M${x - w} ${cy} C${x - w} ${top} ${x + w} ${top} ${x + w} ${cy}`;
+  const bot = cy + lerp(h * 1.33, -h * 1.33 + 1.5, e.happy);
+  return `M${x - w} ${cy} C${x - w} ${top} ${x + w} ${top} ${x + w} ${cy} C${x + w} ${bot} ${x - w} ${bot} ${x - w} ${cy}Z`;
+}
+function mouthPath(cx, cy, m) {
+  const t = cy + m.c - m.o, b = cy + m.c + m.o;
+  return `M${cx - m.w} ${cy} C${cx - m.w * .5} ${t} ${cx + m.w * .5} ${t} ${cx + m.w} ${cy} C${cx + m.w * .75} ${b} ${cx - m.w * .75} ${b} ${cx - m.w} ${cy}Z`;
+}
+
+const els = { eyeL: $("eyeL"), eyeR: $("eyeR"), mouth: $("mouth"), root: $("charRoot"), sparks: $("sparks"), zzz: $("zzz"), shadow: $("shadow") };
+let blink = 1, nextBlink = performance.now() + 2500;
+let talkEnv = 0;
+let appState = "ready";
+
+function render(now, instant) {
+  const k = instant ? 1 : .16;
+  for (const part of ["eye", "mouth"]) for (const key in target[part]) cur[part][key] = lerp(cur[part][key], target[part][key], k);
+  cur.spark = lerp(cur.spark, target.spark, k * .6);
+  cur.tilt = lerp(cur.tilt, target.tilt, k * .5);
+
+  // まばたき
+  if (!instant && appState !== "away") {
+    if (now > nextBlink) { blink = Math.max(.08, blink - .35); if (blink <= .08) nextBlink = now + 2200 + Math.random() * 3200; }
+    else blink = Math.min(1, blink + .25);
+  }
+
+  // 口パク
+  const m = { ...cur.mouth };
+  if (appState === "speaking" && !instant) {
+    const n = (Math.sin(now / 83) + Math.sin(now / 131 + 1.3)) / 2;
+    const env = outLevel > .02 ? Math.min(1, outLevel * (.85 + n * .15)) : 0;
+    talkEnv = lerp(talkEnv, env, .35);
+    m.o = 4 + talkEnv * 26;
+    m.c = cur.mouth.c + talkEnv * 6;
+  }
+
+  const bob = instant ? 0 : Math.sin(now / 900) * 3 + (appState === "speaking" ? -talkEnv * 4 : 0);
+  const squash = 1 + (instant ? 0 : micLevel * .025 + talkEnv * .012);
+  els.root.setAttribute("transform", `translate(0 ${bob}) rotate(${cur.tilt} 290 440) translate(290 440) scale(${2 - squash} ${squash}) translate(-290 -440)`);
+  els.eyeL.setAttribute("d", eyePath(214, 225, cur.eye, blink));
+  els.eyeR.setAttribute("d", eyePath(366, 225, cur.eye, blink));
+  els.mouth.setAttribute("d", mouthPath(290, 316, m));
+  const eyeFill = Math.max(0, 1 - cur.eye.happy * 1.6).toFixed(3);
+  els.eyeL.setAttribute("fill-opacity", eyeFill); els.eyeR.setAttribute("fill-opacity", eyeFill);
+  const sp = Math.min(1, cur.spark + (instant ? 0 : micLevel * .4 + talkEnv * .2));
+  els.sparks.setAttribute("opacity", sp.toFixed(3));
+  els.sparks.setAttribute("transform", `translate(${(1 - sp) * -18} ${(1 - sp) * 18})`);
+  els.zzz.setAttribute("opacity", appState === "away" ? (.55 + Math.sin(now / 700) * .35).toFixed(2) : 0);
+  els.shadow.setAttribute("rx", (250 - bob * 2).toFixed(1));
+}
+
+let listenTimer = 0;
+function setState(s) {
+  appState = s;
+  document.getElementById("app").classList.toggle("away", s === "away");
+  clearTimeout(listenTimer);
+  if (s === "listening") {
+    // 開始直後は「こっちを見てる」顔 → 少ししたら「聞いてる」顔
+    target = clone(EXPR.ready);
+    listenTimer = setTimeout(() => { if (appState === "listening") target = clone(EXPR.listening); }, 3500);
+  } else {
+    target = clone(EXPR[s] || EXPR.ready);
+  }
+  $("btnMic").setAttribute("aria-pressed", String(["listening", "hearing", "thinking", "speaking"].includes(s)));
+  $("btnOff").setAttribute("aria-pressed", String(s === "off"));
+  $("btnAway").setAttribute("aria-pressed", String(s === "away"));
+}
+
+/* ============ 操作バーの自動フェード ============ */
+const controls = $("controls");
+let fadeT1 = 0, fadeT2 = 0;
+function wakeControls() {
+  if (MOCK) return;
+  controls.dataset.vis = "shown";
+  clearTimeout(fadeT1); clearTimeout(fadeT2);
+  fadeT1 = setTimeout(() => controls.dataset.vis = "dim", 5000);
+  fadeT2 = setTimeout(() => controls.dataset.vis = "hidden", 9000);
+}
+["pointerdown", "pointermove", "keydown"].forEach((ev) => addEventListener(ev, (e) => {
+  if (ev === "pointermove" && e.pointerType !== "mouse") return;
+  wakeControls();
+}, { passive: true }));
+
+/* ============ トースト ============ */
+let toastT = 0;
+function toast(msg, ms = 3200) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+/* ============ 設定 ============ */
+const store = {
+  get(k, d = "") { try { return localStorage.getItem("koetomo." + k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("koetomo." + k, v); } catch {} },
+  del(k) { try { localStorage.removeItem("koetomo." + k); } catch {} },
+};
+const DEFAULT_MODEL = "gemini-3.8-live";
+const VOICES = ["Aoede", "Kore", "Leda", "Zephyr", "Puck", "Charon", "Fenrir", "Orus"];
+(() => {
+  const sel = $("voice");
+  for (const v of VOICES) { const o = document.createElement("option"); o.value = o.textContent = v; sel.appendChild(o); }
+})();
+
+function openSettings() {
+  $("apiKey").value = store.get("geminiKey");
+  $("model").value = store.get("model", DEFAULT_MODEL);
+  $("voice").value = store.get("voice", "Aoede");
+  $("persona").value = store.get("persona");
+  $("settingsScrim").classList.add("open");
+}
+$("btnSettings").onclick = openSettings;
+$("toggleKey").onclick = () => {
+  const f = $("apiKey"); const show = f.type === "password";
+  f.type = show ? "text" : "password"; $("toggleKey").textContent = show ? "隠す" : "表示";
+};
+$("settingsCancel").onclick = () => $("settingsScrim").classList.remove("open");
+$("settingsSave").onclick = () => {
+  store.set("geminiKey", $("apiKey").value.trim());
+  store.set("model", $("model").value.trim() || DEFAULT_MODEL);
+  store.set("voice", $("voice").value);
+  store.set("persona", $("persona").value.trim());
+  $("settingsScrim").classList.remove("open");
+  toast(session ? "保存しました（次にマイクオンしたときに反映）" : "保存しました");
+};
+for (const id of ["settingsScrim", "menuScrim"]) $(id).addEventListener("click", (e) => { if (e.target.id === id) $(id).classList.remove("open"); });
+
+$("btnMenu").onclick = () => $("menuScrim").classList.add("open");
+$("mReset").onclick = () => {
+  $("menuScrim").classList.remove("open");
+  const wasOn = micWanted;
+  stopAll();
+  if (wasOn) startSession(); else setState("ready");
+  toast("会話をリセットしました");
+};
+$("mFull").onclick = async () => {
+  $("menuScrim").classList.remove("open");
+  try {
+    await document.documentElement.requestFullscreen();
+    await screen.orientation?.lock?.("landscape");
+  } catch {}
+};
+$("mForget").onclick = () => { store.del("geminiKey"); $("menuScrim").classList.remove("open"); toast("API キーを削除しました"); };
+
+/* ============ Gemini Live ============ */
+const WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+let session = null;      // WebSocket
+let ready = false;       // setupComplete を受け取ったか
+let micWanted = false;
+let sessionStartedAt = 0;
+let hearingTimer = 0;
+
+function systemPrompt() {
+  const persona = store.get("persona") || "やさしくて明るい、白くて四角いマスコットの話し相手。";
+  return [
+    "あなたは音声会話アプリのマスコットです。キャラクター: " + persona,
+    "日本語の話し言葉で、ふつうは1〜3文の短い返事をしてください。相手が話し始めたらすぐ聞く側に回ってください。",
+    "初めて音声AIと話す人にも安心してもらえるよう、やわらかく親しみやすく話してください。",
+  ].join("\n");
+}
+
+function startSession() {
+  const key = store.get("geminiKey");
+  ready = false;
+  const ws = new WebSocket(`${WS_URL}?key=${encodeURIComponent(key)}`);
+  session = ws;
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      setup: {
+        model: "models/" + store.get("model", DEFAULT_MODEL),
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: store.get("voice", "Aoede") } } },
+        },
+        systemInstruction: { parts: [{ text: systemPrompt() }] },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
+      },
+    }));
+  };
+  ws.onmessage = async (ev) => {
+    const raw = typeof ev.data === "string" ? ev.data : await ev.data.text();
+    let msg; try { msg = JSON.parse(raw); } catch { return; }
+    if (ws !== session) return;
+    onServerMessage(msg);
+  };
+  ws.onerror = () => {};
+  ws.onclose = (ev) => {
+    if (ws !== session) return;
+    session = null; ready = false;
+    if (!micWanted) return;
+    const longEnough = sessionStartedAt && performance.now() - sessionStartedAt > 30000;
+    if (longEnough) { toast("つなぎ直しています…"); startSession(); return; } // 時間切れ・goAway 後の自動再接続
+    stopAll();
+    setState("sad");
+    const reason = ev.reason || "";
+    toast(/api key|API_KEY|permission|unauth/i.test(reason) ? "API キーが正しくないみたい" :
+          /model/i.test(reason) ? "モデル名を確認してね：" + reason.slice(0, 80) :
+          "つながりませんでした" + (reason ? "：" + reason.slice(0, 80) : ""), 5000);
+  };
+}
+
+function onServerMessage(msg) {
+  if (msg.setupComplete) {
+    ready = true; sessionStartedAt = performance.now();
+    setState("listening");
+    return;
+  }
+  if (msg.goAway) { toast("まもなくつなぎ直します"); return; }
+  const sc = msg.serverContent;
+  if (!sc) return;
+
+  if (sc.interrupted) { stopPlayback(); setState("hearing"); }
+
+  const heard = sc.inputTranscription?.text || sc.interimInputTranscription?.text;
+  if (heard && appState !== "speaking") {
+    setState("hearing");
+    clearTimeout(hearingTimer);
+    hearingTimer = setTimeout(() => { if (appState === "hearing") setState("thinking"); }, 900);
+  }
+
+  for (const part of sc.modelTurn?.parts || []) {
+    const d = part.inlineData;
+    if (d?.data && d.mimeType?.startsWith("audio/pcm")) {
+      const rate = parseInt(/rate=(\d+)/.exec(d.mimeType)?.[1] || "24000", 10);
+      enqueuePcm(d.data, rate);
+      if (appState !== "speaking") setState("speaking");
+    }
+  }
+}
+
+/* ============ 音声出力（24kHz PCM） ============ */
+let outCtx = null, outAnalyser = null, playHead = 0;
+const playing = new Set();
+let outLevel = 0;
+
+function ensureOut() {
+  if (outCtx) return;
+  outCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+  outAnalyser = outCtx.createAnalyser(); outAnalyser.fftSize = 512;
+  outAnalyser.connect(outCtx.destination);
+}
+function b64ToInt16(b64) {
+  const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Int16Array(bytes.buffer, 0, bytes.length >> 1);
+}
+function enqueuePcm(b64, rate) {
+  ensureOut();
+  const pcm = b64ToInt16(b64);
+  const buf = outCtx.createBuffer(1, pcm.length, rate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 32768;
+  const src = outCtx.createBufferSource();
+  src.buffer = buf; src.connect(outAnalyser);
+  playHead = Math.max(playHead, outCtx.currentTime + .04);
+  src.start(playHead);
+  playHead += buf.duration;
+  playing.add(src);
+  src.onended = () => {
+    playing.delete(src);
+    if (!playing.size && appState === "speaking") setState(micWanted ? "listening" : "off");
+  };
+}
+function stopPlayback() {
+  for (const s of playing) { try { s.onended = null; s.stop(); } catch {} }
+  playing.clear();
+  if (outCtx) playHead = outCtx.currentTime;
+}
+
+/* ============ マイク入力（16kHz PCM） ============ */
+let inCtx = null, micStream = null, micNode = null, micLevel = 0;
+
+// Float32 の入力を 16kHz / Int16 に変換して 100ms ごとに送る（worklet とメインスレッドで共用）
+const CAPTURE_SRC = `
+function makeCapture(rate, onPcm, onLevel) {
+  const buf = new Int16Array(1600), ratio = rate / 16000;
+  let n = 0, pos = 0;
+  return (ch) => {
+    let sum = 0;
+    for (let i = 0; i < ch.length; i++) sum += ch[i] * ch[i];
+    for (; pos < ch.length; pos += ratio) {
+      const s = Math.max(-1, Math.min(1, ch[Math.floor(pos)]));
+      buf[n++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      if (n === buf.length) { onPcm(buf.slice(0).buffer); n = 0; }
+    }
+    pos -= ch.length;
+    onLevel(Math.sqrt(sum / ch.length));
+  };
+}`;
+const WORKLET = CAPTURE_SRC + `
+class Pcm16Capture extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.feed = makeCapture(sampleRate, (pcm) => this.port.postMessage({ pcm }, [pcm]), (level) => this.port.postMessage({ level }));
+  }
+  process(inputs) { const ch = inputs[0][0]; if (ch) this.feed(ch); return true; }
+}
+registerProcessor("pcm16-capture", Pcm16Capture);`;
+const makeCapture = new Function(CAPTURE_SRC + "; return makeCapture;")();
+
+function int16ToB64(ab) {
+  const bytes = new Uint8Array(ab); let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function sendPcm(pcm) {
+  if (ready && session?.readyState === WebSocket.OPEN) {
+    session.send(JSON.stringify({ realtimeInput: { audio: { data: int16ToB64(pcm), mimeType: "audio/pcm;rate=16000" } } }));
+  }
+}
+function onMicLevel(level) { micLevel = lerp(micLevel, Math.min(1, level * 8), .3); }
+
+async function startMic() {
+  // AudioContext はクリック直後（ユーザー操作中）に作って resume しておく
+  const AC = window.AudioContext || window.webkitAudioContext;
+  try { inCtx = new AC({ sampleRate: 16000 }); } catch { inCtx = new AC(); }
+  inCtx.resume().catch(() => {});
+
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+  });
+
+  let source;
+  try { source = inCtx.createMediaStreamSource(micStream); }
+  catch { // サンプルレート違いで繋げないブラウザ（Firefox など）
+    inCtx.close(); inCtx = new AC(); inCtx.resume().catch(() => {});
+    source = inCtx.createMediaStreamSource(micStream);
+  }
+
+  const mute = inCtx.createGain(); mute.gain.value = 0;
+  try {
+    if (!inCtx.audioWorklet) throw new Error("no worklet");
+    const url = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+    await inCtx.audioWorklet.addModule(url);
+    micNode = new AudioWorkletNode(inCtx, "pcm16-capture");
+    micNode.port.onmessage = ({ data }) => data.pcm ? sendPcm(data.pcm) : onMicLevel(data.level);
+  } catch (e) {
+    // file:// で開いたときなど worklet が読めない場合はこちら
+    console.warn("AudioWorklet が使えないので ScriptProcessor で代用します", e);
+    const feed = makeCapture(inCtx.sampleRate, sendPcm, onMicLevel);
+    micNode = inCtx.createScriptProcessor(2048, 1, 1);
+    micNode.onaudioprocess = (ev) => feed(ev.inputBuffer.getChannelData(0));
+  }
+  source.connect(micNode).connect(mute).connect(inCtx.destination);
+}
+function stopMic() {
+  micStream?.getTracks().forEach((t) => t.stop());
+  try { micNode?.disconnect(); } catch {}
+  inCtx?.close();
+  inCtx = micStream = micNode = null; micLevel = 0;
+}
+
+const outBuf = new Uint8Array(512);
+function readLevel() {
+  if (outAnalyser && playing.size) {
+    outAnalyser.getByteTimeDomainData(outBuf);
+    let sum = 0; for (const v of outBuf) { const d = (v - 128) / 128; sum += d * d; }
+    outLevel = lerp(outLevel, Math.min(1, Math.sqrt(sum / outBuf.length) * 5), .45);
+  } else outLevel *= .8;
+  if (!["listening", "hearing"].includes(appState)) micLevel *= .9;
+}
+
+/* ============ ボタン ============ */
+function stopAll() {
+  micWanted = false;
+  clearTimeout(hearingTimer);
+  const s = session; session = null; ready = false;
+  try { s?.close(); } catch {}
+  stopMic(); stopPlayback();
+}
+$("btnMic").onclick = async () => {
+  if (micWanted) return;
+  if (!store.get("geminiKey")) { toast("まずは設定で Gemini API キーを入れてね"); openSettings(); return; }
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    toast("マイクは https:// か localhost で開いたときだけ使えます", 5000); setState("sad"); return;
+  }
+  ensureOut(); outCtx.resume();
+  micWanted = true;
+  setState("thinking");
+  try { await startMic(); }
+  catch (e) {
+    console.error("マイク起動エラー", e);
+    stopMic(); micWanted = false; setState("sad");
+    const name = e?.name || "";
+    toast(name === "NotAllowedError" || name === "SecurityError" ? "マイクがブロックされています（ブラウザとOSのマイク設定を確認してね）" :
+          name === "NotFoundError" ? "マイクが見つかりません" :
+          name === "NotReadableError" ? "ほかのアプリがマイクを使っているかも" :
+          `マイクを起動できませんでした：${name} ${e?.message || ""}`, 6000);
+    return;
+  }
+  startSession();
+};
+$("btnOff").onclick = () => { stopAll(); setState("off"); };
+$("btnAway").onclick = () => { stopAll(); setState("away"); };
+$("mascot").addEventListener("click", () => {
+  if (appState === "away" || appState === "sad") { setState("ready"); return; }
+  if (appState === "speaking") { stopPlayback(); setState("listening"); } // 話をさえぎる
+});
+document.addEventListener("visibilitychange", () => { if (document.hidden && micWanted) { stopAll(); setState("off"); } });
+
+/* ============ ループ ============ */
+if (MOCK) {
+  const cfg = {
+    "1": { state: "ready",    vis: "shown",  mic: true },
+    "2": { state: "listening", vis: "dim",   mic: true },
+    "3": { state: "speaking", vis: "hidden", mic: true },
+  }[MOCK] || { state: "ready", vis: "shown", mic: false };
+  appState = cfg.state;
+  target = clone(EXPR[cfg.state]);
+  if (cfg.state === "speaking") target.mouth = { w: 58, c: 30, o: 22 };
+  cur = clone(target);
+  controls.dataset.vis = cfg.vis;
+  $("btnMic").setAttribute("aria-pressed", String(cfg.mic));
+  render(0, true);
+} else {
+  setState("ready");
+  wakeControls();
+  const loop = (now) => { readLevel(); render(now, false); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+  if (!store.get("geminiKey")) setTimeout(() => toast("右上の設定から Gemini API キーを入れると話せます", 4200), 900);
+}
+</script>
+</body>
+</html>
