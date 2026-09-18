@@ -136,6 +136,11 @@
     opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s;
     z-index: 20; max-width: calc(100vw - 180px); text-align: center;
   }
+  .credit {
+    position: absolute; z-index: 3; pointer-events: none;
+    right: max(24px, calc(env(safe-area-inset-right) + 16px)); bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
+    font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--ink-faint); opacity: .85;
+  }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* ---- sheet (settings / menu) ---- */
@@ -321,6 +326,7 @@
   </nav>
 
   <div class="toast" id="toast"></div>
+  <div class="credit">kzu_project</div>
 </div>
 
 <!-- settings -->
