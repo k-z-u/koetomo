@@ -634,6 +634,7 @@ function startSession() {
   };
   ws.onerror = () => {};
   ws.onclose = (ev) => {
+    dbg(`closed ${ev.code} ${ev.reason}`);
     if (ws !== session) return;
     session = null; ready = false;
     if (!micWanted) return;
@@ -648,7 +649,28 @@ function startSession() {
   };
 }
 
+// ?debug=1 を付けて開くと、画面左下に通信の様子を表示する
+const DEBUG = params.has("debug");
+const dbgBox = DEBUG ? Object.assign(document.body.appendChild(document.createElement("pre")), {
+  style: "position:fixed;left:8px;bottom:8px;max-width:60vw;max-height:40vh;overflow:auto;margin:0;padding:8px 10px;background:rgba(255,255,255,.9);border-radius:10px;font:11px/1.4 ui-monospace,monospace;color:#333;z-index:99;user-select:text;-webkit-user-select:text",
+}) : null;
+function dbg(line) {
+  if (!dbgBox) return;
+  dbgBox.textContent = (new Date().toLocaleTimeString() + " " + line + "\n" + dbgBox.textContent).slice(0, 4000);
+}
+function describe(msg) {
+  const sc = msg.serverContent;
+  if (!sc) return Object.keys(msg).join(",");
+  const parts = [];
+  if (sc.modelTurn) parts.push("audio×" + (sc.modelTurn.parts || []).length);
+  for (const k of ["interrupted", "turnComplete", "generationComplete"]) if (sc[k]) parts.push(k);
+  if (sc.inputTranscription?.text) parts.push("聞いた:" + sc.inputTranscription.text);
+  if (sc.outputTranscription?.text) parts.push("話した:" + sc.outputTranscription.text);
+  return parts.join(" ") || Object.keys(sc).join(",");
+}
+
 function onServerMessage(msg) {
+  if (DEBUG) dbg(describe(msg));
   if (msg.setupComplete) {
     ready = true; sessionStartedAt = performance.now();
     setState("listening");
@@ -711,12 +733,14 @@ function enqueuePcm(b64, rate) {
   playing.add(src);
   src.onended = () => {
     playing.delete(src);
+    if (!playing.size) micMutedUntil = performance.now() + 600;
     if (!playing.size && appState === "speaking") setState(micWanted ? "listening" : "off");
   };
 }
 function stopPlayback() {
   for (const s of playing) { try { s.onended = null; s.stop(); } catch {} }
   playing.clear();
+  micMutedUntil = 0;
   if (outCtx) playHead = outCtx.currentTime;
 }
 
@@ -756,7 +780,12 @@ function int16ToB64(ab) {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
+// キャラが話している間（と直後）はマイク音声を送らない。
+// スピーカーの声をマイクが拾うと、Gemini が自分の声を「相手の発言」と勘違いして
+// 自分で割り込み続けたり（無言になる）、外国語だと思って返したりするため。
+let micMutedUntil = 0;
 function sendPcm(pcm) {
+  if (playing.size || performance.now() < micMutedUntil) return;
   if (ready && session?.readyState === WebSocket.OPEN) {
     session.send(JSON.stringify({ realtimeInput: { audio: { data: int16ToB64(pcm), mimeType: "audio/pcm;rate=16000" } } }));
   }
