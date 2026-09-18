@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F6F7F9">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="こえとも">
 <title>こえとも</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,6 +67,12 @@
   }
   .icon-btn:hover { background: rgba(0,0,0,.04); }
   .icon-btn svg { width: 26px; height: 26px; }
+  #btnFull .fs-exit { display: none; }
+  .is-full #btnFull .fs-enter { display: none; }
+  .is-full #btnFull .fs-exit { display: block; }
+  .standalone #btnFull { display: none; }
+  /* 縦向きでも「横にしてね」画面から全画面＋横固定に入れるボタン */
+  .rotate .btn { margin-top: 8px; }
 
   /* ---- mascot ---- */
   .stage {
@@ -195,6 +208,10 @@
     <span class="mode-chip" id="modeChip"></span>
     </div>
     <div class="top-actions">
+      <button class="icon-btn" id="btnFull" aria-label="全画面">
+        <svg class="fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg>
+        <svg class="fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4M20 9h-3.5A1.5 1.5 0 0 1 15 7.5V4M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20M4 15h3.5A1.5 1.5 0 0 1 9 16.5V20"/></svg>
+      </button>
       <button class="icon-btn" id="btnSettings" aria-label="設定">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4.9a7.6 7.6 0 0 0-2.6-1.5L14 2.4h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.4l-2.4-.9-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-.9a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4.9 2-3.4-2-1.6Z"/></svg>
       </button>
@@ -305,6 +322,7 @@
 <div class="rotate">
   <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#16C4DA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M8 3.5a9 9 0 0 1 8 0M16 3.5l-.8 2M16 3.5l-2.1-.3"/></svg>
   スマホを横向きにしてね
+  <button class="btn primary" id="rotateFull">全画面で横向きにする</button>
 </div>
 
 <script type="module">
@@ -503,13 +521,35 @@ $("mReset").onclick = () => {
   if (wasOn) startSession(); else setState("ready");
   toast("会話をリセットしました");
 };
-$("mFull").onclick = async () => {
-  $("menuScrim").classList.remove("open");
+/* ============ 全画面（横向き固定） ============ */
+const root = document.documentElement;
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+const canFullscreen = !!(root.requestFullscreen || root.webkitRequestFullscreen);
+const isStandalone = matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches || navigator.standalone;
+if (isStandalone) root.classList.add("standalone");
+
+async function enterFull() {
+  if (!canFullscreen) {
+    // iPhone の Safari は Web ページの全画面に非対応 → ホーム画面に追加してもらう
+    toast("iPhone は「共有 → ホーム画面に追加」から開くと全画面になります", 6000);
+    return;
+  }
   try {
-    await document.documentElement.requestFullscreen();
-    await screen.orientation?.lock?.("landscape");
+    await (root.requestFullscreen ? root.requestFullscreen({ navigationUI: "hide" }) : root.webkitRequestFullscreen());
+    await screen.orientation?.lock?.("landscape").catch(() => {});
   } catch {}
-};
+}
+async function exitFull() {
+  try { screen.orientation?.unlock?.(); } catch {}
+  try { await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen()); } catch {}
+}
+const syncFull = () => root.classList.toggle("is-full", !!fsElement());
+document.addEventListener("fullscreenchange", syncFull);
+document.addEventListener("webkitfullscreenchange", syncFull);
+$("btnFull").onclick = () => fsElement() ? exitFull() : enterFull();
+$("rotateFull").onclick = enterFull;
+if (!canFullscreen && isStandalone) $("rotateFull").style.display = "none";
+$("mFull").onclick = () => { $("menuScrim").classList.remove("open"); enterFull(); };
 $("mForget").onclick = () => { store.del("geminiKey"); $("menuScrim").classList.remove("open"); toast("API キーを削除しました"); };
 
 /* ============ Gemini Live ============ */
@@ -779,6 +819,7 @@ $("btnMic").onclick = async () => {
     toast("マイクは https:// か localhost で開いたときだけ使えます", 5000); setState("sad"); return;
   }
   ensureOut(); outCtx.resume();
+  if (matchMedia("(pointer: coarse)").matches && !fsElement() && canFullscreen) enterFull(); // スマホはマイクオンで自動的に全画面
   micWanted = true;
   setState("thinking");
   try { await startMic(); }
