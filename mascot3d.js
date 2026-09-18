@@ -86,9 +86,10 @@ export async function createMascot3D(canvas, url) {
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent: true, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = -.37; scene.add(shadow);
 
-  // 視差（指やマウスの位置でちょっと回り込む）
-  const pointer = { x: 0, y: 0 };
-  addEventListener("pointermove", (e) => { pointer.x = e.clientX / innerWidth - .5; pointer.y = e.clientY / innerHeight - .5; }, { passive: true });
+  // ついてくる用
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), proj = new THREE.Vector3();
+  const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const screenPos = { x: 0, y: 0 };
 
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -104,7 +105,8 @@ export async function createMascot3D(canvas, url) {
   new ResizeObserver(resize).observe(canvas); resize();
 
   const sq = spring(.10, .80), lean = spring(.06, .86), jelly = spring(.09, .78), hop = spring(.14, .74);
-  const yaw = spring(.03, .9);
+  const yaw = spring(.05, .86);
+  const posX = spring(.035, .86), posZ = spring(.035, .86);
   let lastTalk = 0;
   const idx = body.morphTargetDictionary;
 
@@ -120,7 +122,7 @@ export async function createMascot3D(canvas, url) {
       for (const b of f.brows) rotAt(b.rot, b.x, b.y, () => c.stroke(new Path2D(b.d)));
       c.globalAlpha = 1;
     }
-    for (const e of f.eyes) rotAt(e.rot, e.x, 225, () => {
+    for (const e of f.eyes) rotAt(e.rot, e.x, e.y ?? 225, () => {
       const p = new Path2D(e.d);
       if (f.eyeFill > .01) { c.globalAlpha = f.eyeFill; c.fillStyle = CYAN; c.fill(p); c.globalAlpha = 1; }
       c.lineWidth = 15; c.stroke(p);
@@ -150,27 +152,55 @@ export async function createMascot3D(canvas, url) {
       inf[idx.Squash] = Math.max(0, s) * 1.2;
       inf[idx.Stretch] = Math.max(0, -s) * 1.2 + (p.state === "speaking" ? Math.max(0, Math.sin(t * 7.5)) * talk * .25 : 0);
       inf[idx.Puff] = .15 + Math.sin(t * 1.6) * .1 + p.micLevel * .6 + (p.state === "hearing" ? .25 : 0);
-      const l = lean.step(-p.tilt / 7);
-      inf[idx.LeanL] = Math.max(0, -l); inf[idx.LeanR] = Math.max(0, l);
-      uniforms.uJelly.value = jelly.step(0) + (lean.v * 6);
-      uniforms.uWave.value = talk + p.micLevel * .6;
-      uniforms.uTime.value = t;
-
-      root.position.y = Math.max(0, hop.step(0)) + Math.sin(t * 1.1) * .015;
-      root.rotation.y = yaw.step(Math.sin(t * .45) * .12 + pointer.x * .5);
-      root.rotation.z = THREE.MathUtils.degToRad(-p.tilt * .5);
-      if (p.state === "away") { root.rotation.x = .06; root.position.y -= .03; } else root.rotation.x = 0;
-
-      // 足：話すときはトコトコ
-      feet.forEach((f, i) => {
-        f.mesh.position.y = f.y + (p.state === "speaking" ? Math.max(0, Math.sin(t * 9 + i * 2.1)) * .025 * talk : 0);
-      });
-      shadow.scale.setScalar(1 - root.position.y * .6);
-
+      // カメラ（ついてくるモード中は固定、それ以外は指やマウスでちょっと回り込む）
       const d = camera.userData.dist || 7;
-      camera.position.set(Math.sin(.18 + pointer.x * .15) * d, .95 + d * .08 - pointer.y * .3, Math.cos(.18 + pointer.x * .15) * d);
+      const par = p.follow ? 0 : 1;
+      camera.position.set(Math.sin(.18 + p.ptr.x * .08 * par) * d, .95 + d * .08 + p.ptr.y * .15 * par, Math.cos(.18 + p.ptr.x * .08 * par) * d);
       camera.lookAt(lookAt);
+      camera.updateMatrixWorld();
+
+      // ついてくる：ポインターの下の床の位置へ、ばねで遅れてぬるっと移動
+      let tx = 0, tz = 0;
+      if (p.follow && p.ptrActive) {
+        ray.setFromCamera(ndc.set(p.ptr.x, p.ptr.y), camera);
+        if (ray.ray.intersectPlane(floor, hit)) {
+          const hx = camera.aspect * 1.05, hz = 1.1;
+          tx = THREE.MathUtils.clamp(hit.x, -hx, hx); tz = THREE.MathUtils.clamp(hit.z, -1.4, hz);
+        }
+      }
+      const px = posX.step(tx), pz = posZ.step(tz);
+      const vx = posX.v, vz = posZ.v, speed = Math.hypot(vx, vz);
+      root.position.x = px; root.position.z = pz;
+
+      const l = lean.step(-p.tilt / 7 + THREE.MathUtils.clamp(vx * 9, -1.2, 1.2));
+      inf[idx.LeanL] = Math.max(0, -l); inf[idx.LeanR] = Math.max(0, l);
+      uniforms.uJelly.value = jelly.step(0) + lean.v * 6 + THREE.MathUtils.clamp(-vx * 14, -1.5, 1.5);
+      uniforms.uWave.value = talk + p.micLevel * .6 + Math.min(1.5, speed * 25);
+      uniforms.uTime.value = t;
+      if (speed > .004) { const k = Math.min(1, speed * 22); inf[idx.Squash] += Math.abs(Math.sin(t * 13)) * .5 * k; inf[idx.Stretch] += Math.abs(Math.cos(t * 13)) * .35 * k; }
+
+      // ぴょこぴょこ跳ねながら移動
+      const walk = Math.min(1, speed * 30);
+      root.position.y = Math.max(0, hop.step(0)) + Math.sin(t * 1.1) * .015 + Math.abs(Math.sin(t * 13)) * .09 * walk;
+      // 顔をポインターの方へ向ける
+      const faceTo = p.follow && p.ptrActive ? THREE.MathUtils.clamp((tx - px) * .9 + vx * 12, -.9, .9) : Math.sin(t * .45) * .12 + p.ptr.x * .35;
+      root.rotation.y = yaw.step(faceTo);
+      root.rotation.z = THREE.MathUtils.degToRad(-p.tilt * .5) - THREE.MathUtils.clamp(vx * 3, -.25, .25);
+      if (p.state === "away") { root.rotation.x = .06; root.position.y -= .03; } else root.rotation.x = THREE.MathUtils.clamp(vz * 3, -.2, .2);
+
+      // 足：話すとき・歩くときはトコトコ
+      feet.forEach((f, i) => {
+        const step = (p.state === "speaking" ? .025 * talk : 0) + .06 * walk;
+        f.mesh.position.y = f.y + Math.max(0, Math.sin(t * (walk > .1 ? 13 : 9) + i * 2.1)) * step;
+      });
+      shadow.position.x = px; shadow.position.z = pz;
+      shadow.scale.setScalar(1 - (root.position.y) * .8);
+
+      // 本体の画面上の位置（目線の計算に使う）
+      proj.set(px, .7, pz).project(camera);
+      screenPos.x = proj.x; screenPos.y = proj.y;
       renderer.render(scene, camera);
+      return screenPos;
     },
   };
 }

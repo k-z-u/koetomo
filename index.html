@@ -56,9 +56,7 @@
     font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--ink-soft);
   }
   .mode-chip.on { display: inline-block; }
-  .menu hr { border: 0; height: 1px; background: var(--line); margin: 6px 12px; }
-  .menu .label { padding: 10px 18px 4px; font-size: 12px; color: var(--ink-faint); }
-  .menu button[aria-checked="true"]::after { content: "✓"; float: right; color: #0A8FA2; }
+
   .top-actions { display: flex; gap: 10px; }
   .icon-btn {
     width: 48px; height: 48px; border: 0; border-radius: 50%;
@@ -174,12 +172,55 @@
   }
   .btn.ghost { background: #F2F3F5; color: var(--ink-soft); }
   .btn.primary { background: var(--ink); color: #fff; }
-  .menu { width: min(320px, 100%); padding: 10px; }
-  .menu button {
-    display: block; width: 100%; text-align: left; padding: 14px 18px; border: 0; border-radius: 16px;
-    background: transparent; font: 400 15px/1 inherit; font-family: inherit; color: var(--ink); cursor: pointer;
+  /* ---- メニュー（モード選び＋表示設定） ---- */
+  .menu { width: min(820px, 100%); padding: 22px 24px 20px; }
+  .menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .menu-head h2 { margin: 0; }
+  .menu-close { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #F2F3F5; color: var(--ink-soft); cursor: pointer; display: grid; place-items: center; }
+  .menu-close svg { width: 18px; height: 18px; }
+  .menu-body { display: grid; grid-template-columns: 1.55fr 1fr; gap: 22px; }
+  .sec-title { font-size: 12px; font-weight: 500; color: var(--ink-faint); letter-spacing: .06em; margin: 0 0 10px 2px; }
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .mode-card {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+    padding: 10px 8px 12px; border-radius: 18px; border: 1.5px solid var(--line); background: #fff;
+    font-family: inherit; color: var(--ink); cursor: pointer; transition: border-color .2s, background .2s, transform .15s;
   }
-  .menu button:hover { background: #F4F5F7; }
+  .mode-card:hover { background: #FAFBFC; }
+  .mode-card:active { transform: scale(.97); }
+  .mode-card svg { width: 64px; height: 48px; }
+  .mode-card b { font-size: 14px; font-weight: 700; }
+  .mode-card small { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
+  .mode-card[aria-checked="true"] { border-color: var(--cyan); background: var(--cyan-tint); }
+  .mode-card[aria-checked="true"] small { color: #0A8FA2; }
+  .switch-row {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; margin-bottom: 8px;
+    border: 1.5px solid var(--line); border-radius: 16px; background: #fff; cursor: pointer; text-align: left;
+    font-family: inherit; color: var(--ink);
+  }
+  .switch-row .txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .switch-row b { font-size: 14px; font-weight: 700; }
+  .switch-row small { font-size: 11px; color: var(--ink-faint); }
+  .switch { width: 44px; height: 26px; border-radius: 999px; background: #E3E6EA; position: relative; flex: none; transition: background .2s; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.18); transition: transform .2s; }
+  .switch-row[aria-checked="true"] { border-color: var(--cyan); }
+  .switch-row[aria-checked="true"] .switch { background: var(--cyan); }
+  .switch-row[aria-checked="true"] .switch::after { transform: translateX(18px); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip-btn { height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: #F2F3F5; color: var(--ink-soft); font: 500 13px/1 inherit; font-family: inherit; cursor: pointer; }
+  .chip-btn:hover { background: #E9EBEE; }
+  .chip-btn.danger { color: #C2410C; }
+  @media (max-width: 720px) {
+    .menu-body { grid-template-columns: 1fr; }
+  }
+  @media (max-height: 460px) {
+    .menu { padding: 14px 16px; }
+    .menu-head { margin-bottom: 8px; }
+    .mode-card { padding: 6px 6px 8px; gap: 2px; }
+    .mode-card svg { width: 48px; height: 34px; }
+    .mode-card small { display: none; }
+    .switch-row { padding: 9px 12px; }
+  }
 
   /* portrait hint */
   .rotate {
@@ -310,19 +351,34 @@
 
 <!-- menu -->
 <div class="scrim" id="menuScrim">
-  <div class="sheet menu" role="menu">
-    <div class="label">モード</div>
-    <button data-mode="normal" role="menuitemradio">ふつう</button>
-    <button data-mode="claimer" role="menuitemradio">クレーマー</button>
-    <button data-mode="overprotect" role="menuitemradio">過保護</button>
-    <button data-mode="reisho" role="menuitemradio">冷笑</button>
-    <button data-mode="ishiki" role="menuitemradio">意識高い系</button>
-    <button data-mode="inbou" role="menuitemradio">陰謀論</button>
-    <hr>
-    <button id="mReset">会話をリセット</button>
-    <button id="m3d" role="menuitemcheckbox">3D 表示</button>
-    <button id="mFull">全画面にする</button>
-    <button id="mForget">API キーを削除</button>
+  <div class="sheet menu" role="dialog" aria-label="メニュー">
+    <div class="menu-head">
+      <h2>メニュー</h2>
+      <button class="menu-close" id="menuClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="menu-body">
+      <section>
+        <p class="sec-title">キャラのモード</p>
+        <div class="modes" role="radiogroup" aria-label="キャラのモード">
+          <button class="mode-card" data-mode="normal" role="radio"><svg data-face="normal"></svg><b>ふつう</b><small>やさしい話し相手</small></button>
+          <button class="mode-card" data-mode="claimer" role="radio"><svg data-face="claimer"></svg><b>クレーマー</b><small>キレて本社に連絡</small></button>
+          <button class="mode-card" data-mode="overprotect" role="radio"><svg data-face="overprotect"></svg><b>過保護</b><small>心配しすぎて各所に報告</small></button>
+          <button class="mode-card" data-mode="reisho" role="radio"><svg data-face="reisho"></svg><b>冷笑</b><small>どもりながら半笑い</small></button>
+          <button class="mode-card" data-mode="ishiki" role="radio"><svg data-face="ishiki"></svg><b>意識高い系</b><small>何でもビジネス用語</small></button>
+          <button class="mode-card" data-mode="inbou" role="radio"><svg data-face="inbou"></svg><b>陰謀論</b><small>何でも黒幕のしわざじゃ</small></button>
+        </div>
+      </section>
+      <section>
+        <p class="sec-title">見た目</p>
+        <button class="switch-row" id="m3d" role="switch" aria-checked="false"><span class="txt"><b>3D 表示</b><small>立体になってぬるぬる動く</small></span><span class="switch"></span></button>
+        <button class="switch-row" id="mFollow" role="switch" aria-checked="false"><span class="txt"><b>ついてくる</b><small>マウスや指をキャラが追いかける</small></span><span class="switch"></span></button>
+        <div class="actions">
+          <button class="chip-btn" id="mFull">全画面</button>
+          <button class="chip-btn" id="mReset">会話をリセット</button>
+          <button class="chip-btn danger" id="mForget">API キーを削除</button>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -411,8 +467,9 @@ let cur = exprFor("ready");
 let target = exprFor("ready");
 const lerp = (a, b, t) => a + (b - a) * t;
 
-function eyePath(cx, cy, e, blink) {
-  const x = cx + e.lx, w = e.w, h = e.h * (e.happy > .5 ? 1 : blink);
+function eyePath(cx, cy, e, blink, lookX = 0, lookY = 0) {
+  cy += lookY;
+  const x = cx + e.lx + lookX, w = e.w, h = e.h * (e.happy > .5 ? 1 : blink);
   const top = cy - h * 1.33;
   if (e.happy > .92) return `M${x - w} ${cy} C${x - w} ${top} ${x + w} ${top} ${x + w} ${cy}`;
   const bot = cy + lerp(h * 1.33, -h * 1.33 + 1.5, e.happy);
@@ -427,6 +484,21 @@ const els = { browL: $("browL"), browR: $("browR"), eyeL: $("eyeL"), eyeR: $("ey
 let blink = 1, nextBlink = performance.now() + 2500;
 let talkEnv = 0;
 let appState = "ready";
+
+/* ============ ついてくる（マウス・指の追従） ============ */
+let follow = false;
+try { follow = localStorage.getItem("koetomo.follow") === "1"; } catch {}
+const ptr = { x: 0, y: 0, active: false, last: 0 };   // x,y は -1..1（上が +）
+function onPtr(e) {
+  ptr.x = e.clientX / innerWidth * 2 - 1; ptr.y = -(e.clientY / innerHeight * 2 - 1);
+  ptr.active = true; ptr.last = performance.now();
+}
+addEventListener("pointermove", onPtr, { passive: true });
+addEventListener("pointerdown", onPtr, { passive: true });
+document.addEventListener("pointerleave", () => { ptr.active = false; });
+const fx2d = { x: 0, y: 0, vx: 0, vy: 0 };     // 2D 表示での位置（ばね）
+let charScreen = { x: 0, y: 0 };               // キャラの画面上の位置（-1..1）
+let look = { x: 0, y: 0 };
 
 function render(now, instant) {
   const k = instant ? 1 : .16;
@@ -450,46 +522,68 @@ function render(now, instant) {
     m.c = cur.mouth.c + talkEnv * 6;
   }
 
-  const bob = instant ? 0 : Math.sin(now / 900) * 3 + (appState === "speaking" ? -talkEnv * 4 : 0);
-  const squash = 1 + (instant ? 0 : micLevel * .025 + talkEnv * .012);
-  els.root.setAttribute("transform", `translate(0 ${bob}) rotate(${cur.tilt} 290 440) translate(290 440) scale(${2 - squash} ${squash}) translate(-290 -440)`);
-  els.eyeL.setAttribute("d", eyePath(214, 225, cur.eye, blink));
-  els.eyeR.setAttribute("d", eyePath(366, 225, cur.eye, blink));
-  els.eyeL.setAttribute("transform", `rotate(${cur.eye.rot} ${214 + cur.eye.lx} 225)`);
+  // ついてくる：ポインターの方へ目線、2D 表示ではキャラごと移動
+  const following = follow && ptr.active && !instant && appState !== "away" && now - ptr.last < 6000;
+  if (!view3d && !instant) {
+    const svgW = els.root.ownerSVGElement.getBoundingClientRect().width || 1;
+    const unit = 680 / svgW;                                      // 1px あたりの SVG 単位
+    const tx = following ? ptr.x * innerWidth / 2 * unit : 0;
+    const ty = following ? -ptr.y * innerHeight / 2 * unit * .35 : 0;
+    fx2d.vx = (fx2d.vx + (Math.max(-900, Math.min(900, tx)) - fx2d.x) * .035) * .86; fx2d.x += fx2d.vx;
+    fx2d.vy = (fx2d.vy + (Math.max(-60, Math.min(90, ty)) - fx2d.y) * .035) * .86; fx2d.y += fx2d.vy;
+    charScreen = { x: fx2d.x / unit / (innerWidth / 2), y: -fx2d.y / unit / (innerHeight / 2) };
+  }
+  const lookT = following ? { x: Math.max(-1, Math.min(1, (ptr.x - charScreen.x) * 2.2)), y: Math.max(-1, Math.min(1, (ptr.y - charScreen.y) * 2.2)) } : { x: 0, y: 0 };
+  look.x = lerp(look.x, lookT.x, .2); look.y = lerp(look.y, lookT.y, .2);
+  const lookX = look.x * 16, lookY = -look.y * 10;
+
+  const speed2d = view3d ? 0 : Math.hypot(fx2d.vx, fx2d.vy);
+  const hop2d = Math.abs(Math.sin(now / 75)) * Math.min(1, speed2d / 6) * 16;
+  const bob = instant ? 0 : Math.sin(now / 900) * 3 + (appState === "speaking" ? -talkEnv * 4 : 0) - hop2d;
+  const squash = 1 + (instant ? 0 : micLevel * .025 + talkEnv * .012 + Math.min(.08, speed2d * .006) * Math.sin(now / 75));
+  const lean2d = Math.max(-12, Math.min(12, fx2d.vx * .6));
+  els.root.setAttribute("transform", `translate(${fx2d.x} ${bob + fx2d.y}) rotate(${cur.tilt + lean2d} 290 440) translate(290 440) scale(${2 - squash} ${squash}) translate(-290 -440)`);
+  els.shadow.setAttribute("cx", 290 + fx2d.x);
+  els.eyeL.setAttribute("d", eyePath(214, 225, cur.eye, blink, lookX, lookY));
+  els.eyeR.setAttribute("d", eyePath(366, 225, cur.eye, blink, lookX, lookY));
+  els.eyeL.setAttribute("transform", `rotate(${cur.eye.rot} ${214 + cur.eye.lx + lookX} ${225 + lookY})`);
   for (const [el, cx, sign] of [[els.browL, 214, 1], [els.browR, 366, -1]]) {
-    const x = cx + cur.eye.lx, y = 225 - Math.max(cur.eye.h, 14) - 34;
+    const x = cx + cur.eye.lx + lookX * .6, y = 225 - Math.max(cur.eye.h, 14) - 34 + lookY * .6;
     el.setAttribute("d", `M${x - 26} ${y} Q${x} ${y - 6} ${x + 26} ${y}`);
     el.setAttribute("transform", `rotate(${sign * cur.eye.browRot} ${x} ${y})`);
     el.setAttribute("opacity", Math.max(0, Math.min(1, cur.eye.brow)).toFixed(3));
   }
-  els.eyeR.setAttribute("transform", `rotate(${-cur.eye.rot} ${366 + cur.eye.lx} 225)`);
+  els.eyeR.setAttribute("transform", `rotate(${-cur.eye.rot} ${366 + cur.eye.lx + lookX} ${225 + lookY})`);
   els.mouth.setAttribute("d", mouthPath(290, 316, m));
   els.mouth.setAttribute("transform", `rotate(${cur.mouth.mrot || 0} 290 316)`);
   const eyeFill = Math.max(0, 1 - cur.eye.happy * 1.6).toFixed(3);
   els.eyeL.setAttribute("fill-opacity", eyeFill); els.eyeR.setAttribute("fill-opacity", eyeFill);
   const sp = Math.min(1, cur.spark + (instant ? 0 : micLevel * .4 + talkEnv * .2));
   els.sparks.setAttribute("opacity", sp.toFixed(3));
-  els.sparks.setAttribute("transform", `translate(${(1 - sp) * -18} ${(1 - sp) * 18})`);
+  els.sparks.setAttribute("transform", `translate(${(1 - sp) * -18 + fx2d.x} ${(1 - sp) * 18 + bob + fx2d.y})`);
+  els.zzz.setAttribute("transform", `translate(${fx2d.x} ${fx2d.y})`);
   els.zzz.setAttribute("opacity", appState === "away" ? (.55 + Math.sin(now / 700) * .35).toFixed(2) : 0);
   els.shadow.setAttribute("rx", (250 - bob * 2).toFixed(1));
 
   if (mascot3d && view3d) {
-    mascot3d.update({
+    const sp3 = mascot3d.update({
       now, state: appState, tilt: cur.tilt, talkEnv, micLevel,
+      follow: following, ptr, ptrActive: ptr.active,
       face: {
         eyes: [
-          { d: els.eyeL.getAttribute("d"), rot: cur.eye.rot, x: 214 + cur.eye.lx },
-          { d: els.eyeR.getAttribute("d"), rot: -cur.eye.rot, x: 366 + cur.eye.lx },
+          { d: els.eyeL.getAttribute("d"), rot: cur.eye.rot, x: 214 + cur.eye.lx + lookX, y: 225 + lookY },
+          { d: els.eyeR.getAttribute("d"), rot: -cur.eye.rot, x: 366 + cur.eye.lx + lookX, y: 225 + lookY },
         ],
         eyeFill: +eyeFill,
         brows: [els.browL, els.browR].map((el, i) => {
-          const x = (i ? 366 : 214) + cur.eye.lx, y = 225 - Math.max(cur.eye.h, 14) - 34;
+          const x = (i ? 366 : 214) + cur.eye.lx + lookX * .6, y = 225 - Math.max(cur.eye.h, 14) - 34 + lookY * .6;
           return { d: el.getAttribute("d"), rot: (i ? -1 : 1) * cur.eye.browRot, x, y };
         }),
         browOpacity: Math.max(0, Math.min(1, cur.eye.brow)),
         mouth: els.mouth.getAttribute("d"), mouthRot: cur.mouth.mrot || 0,
       },
     });
+    if (sp3) charScreen = { x: sp3.x, y: sp3.y };
   }
 }
 
@@ -990,7 +1084,36 @@ $("btnMic").onclick = async () => {
 $("btnOff").onclick = () => { stopAll(); setState("off"); };
 $("btnAway").onclick = () => { stopAll(); setState("away"); };
 $("mascot3d").addEventListener("click", () => $("mascot").dispatchEvent(new Event("click")));
-$("m3d").onclick = () => { $("menuScrim").classList.remove("open"); setView3d(!view3d); };
+$("m3d").onclick = () => setView3d(!view3d);
+$("mFollow").onclick = () => setFollow(!follow);
+$("menuClose").onclick = () => $("menuScrim").classList.remove("open");
+function setFollow(on) {
+  follow = on;
+  try { localStorage.setItem("koetomo.follow", on ? "1" : "0"); } catch {}
+  $("mFollow").setAttribute("aria-checked", String(on));
+}
+setFollow(follow);
+
+// メニューのモードカードに、そのモードの顔を小さく描く
+(function drawModeFaces() {
+  const bodyD = $("body").getAttribute("d");
+  const feetD = [...document.querySelectorAll("#feet path")].map((p) => p.getAttribute("d"));
+  document.querySelectorAll("[data-face]").forEach((svg) => {
+    const ex = clone(MODE_EXPR[svg.dataset.face]?.ready || EXPR.ready);
+    ex.eye.rot ??= 0; ex.eye.brow ??= 0; ex.eye.browRot ??= 0; ex.mouth.mrot ??= 0;
+    const brows = ex.eye.brow ? [[214, 1], [366, -1]].map(([cx, sg]) => {
+      const x = cx + ex.eye.lx, y = 225 - Math.max(ex.eye.h, 14) - 34;
+      return `<path d="M${x - 26} ${y} Q${x} ${y - 6} ${x + 26} ${y}" transform="rotate(${sg * ex.eye.browRot} ${x} ${y})" fill="none" stroke-width="16"/>`;
+    }).join("") : "";
+    const fill = ex.eye.happy > .5 ? "none" : "#16C4DA";
+    svg.setAttribute("viewBox", "-10 20 600 480");
+    svg.innerHTML = `<g fill="#fff" stroke="#17191D" stroke-width="12" stroke-linejoin="round">${feetD.map((d) => `<path d="${d}"/>`).join("")}<path d="${bodyD}"/></g>
+      <g stroke="#16C4DA" stroke-linecap="round" stroke-linejoin="round">${brows}
+      <path d="${eyePath(214, 225, ex.eye, 1)}" transform="rotate(${ex.eye.rot} ${214 + ex.eye.lx} 225)" fill="${fill}" stroke-width="20"/>
+      <path d="${eyePath(366, 225, ex.eye, 1)}" transform="rotate(${-ex.eye.rot} ${366 + ex.eye.lx} 225)" fill="${fill}" stroke-width="20"/>
+      <path d="${mouthPath(290, 316, ex.mouth)}" transform="rotate(${ex.mouth.mrot} 290 316)" fill="#DDF6FA" stroke-width="18"/></g>`;
+  });
+})();
 $("mascot").addEventListener("click", () => {
   if (appState === "away" || appState === "sad") { setState("ready"); return; }
   if (appState === "speaking") { stopPlayback(); setState("listening"); } // 話をさえぎる
