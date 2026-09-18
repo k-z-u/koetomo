@@ -1023,10 +1023,22 @@ function onServerMessage(msg) {
   const sc = msg.serverContent;
   if (!sc) return;
 
-  if (sc.interrupted) { stopPlayback(); setState("hearing"); }
+  if (sc.interrupted) {
+    stopPlayback(); setState("hearing");
+    const tNow = outCtx ? outCtx.currentTime : 0;
+    captions.aiChunks = captions.aiChunks.filter((c) => c.at <= tNow);   // 言いかけでさえぎられた分は字幕から外す
+    captions.aiDone = true;
+  }
   // 字幕（録画に焼き込む）
   if (sc.inputTranscription?.text) { if (captions.userDone) { captions.user = ""; captions.userDone = false; } captions.user += sc.inputTranscription.text; captions.userAt = performance.now(); }
-  if (sc.outputTranscription?.text) { if (captions.aiDone) { captions.ai = ""; captions.aiDone = false; } captions.ai += sc.outputTranscription.text; captions.aiAt = performance.now(); captions.userDone = true; }
+  if (sc.outputTranscription?.text) {
+    if (captions.aiDone) { captions.aiChunks = []; captions.aiDone = false; }
+    // 文字は声より先に届くので、その文字の声が流れる時刻（音声キューの末尾あたり）を付けて、声に合わせて出す
+    const tNow = outCtx ? outCtx.currentTime : 0;
+    const at = playing.size ? Math.max(tNow, playHead - .45) : tNow + .35;
+    captions.aiChunks.push({ at, text: sc.outputTranscription.text });
+    captions.userDone = true;
+  }
   if (sc.turnComplete) captions.aiDone = true;
 
   const heard = sc.inputTranscription?.text || sc.interimInputTranscription?.text;
@@ -1053,7 +1065,8 @@ let outLevel = 0;
 
 function ensureOut() {
   if (outCtx) return;
-  outCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+  // 端末のサンプルレートで作る（24kHz の声は自動で変換される）。録画でマイクと同じ場所で混ぜるため
+  outCtx = new (window.AudioContext || window.webkitAudioContext)();
   outAnalyser = outCtx.createAnalyser(); outAnalyser.fftSize = 512;
   outAnalyser.connect(outCtx.destination);
 }
@@ -1167,8 +1180,11 @@ async function startMic() {
     micNode.onaudioprocess = (ev) => feed(ev.inputBuffer.getChannelData(0));
   }
   source.connect(micNode).connect(mute).connect(inCtx.destination);
+  attachMicToRec();
 }
 function stopMic() {
+  // マイクをオフにしたら録画にも声を入れない
+  if (rec2?.mic) { try { rec2.mic.src.disconnect(); } catch {} rec2.mic.tracks.forEach((t) => t.stop()); rec2.mic = null; }
   micStream?.getTracks().forEach((t) => t.stop());
   try { micNode?.disconnect(); } catch {}
   inCtx?.close();
@@ -1280,12 +1296,24 @@ applyMode();
 
 if (DEBUG) window.__koe = {
   setState, talk(on) { fakeTalk = on; setState(on ? "speaking" : "listening"); },
-  caption(user, ai) { Object.assign(captions, { user, ai, userAt: performance.now(), aiAt: performance.now() }); },
+  caption(user, ai, perSec = 0) {
+    ensureOut();
+    const t0 = outCtx.currentTime;
+    Object.assign(captions, { user, userAt: performance.now(), aiDone: false,
+      aiChunks: perSec ? [...ai].map((ch, i) => ({ at: t0 + i / perSec, text: ch })) : [{ at: t0, text: ai }] });
+  },
   recFrame() { return rec2?.canvas.toDataURL("image/jpeg", .85); },
 };
 
 /* ============ 切り抜き録画（縦型 1080×1920・字幕つき） ============ */
-const captions = { user: "", ai: "", userAt: 0, aiAt: 0, userDone: false, aiDone: false };
+const captions = { user: "", userAt: 0, userDone: false, aiChunks: [], aiDone: false, aiShown: "", aiAt: 0 };
+// いま声で流れているところまでの字幕
+function aiCaptionNow(now) {
+  const t = outCtx ? outCtx.currentTime : Infinity;
+  const text = captions.aiChunks.filter((c) => c.at <= t).map((c) => c.text).join("").trim();
+  if (text !== captions.aiShown) { captions.aiShown = text; captions.aiAt = now; }
+  return text;
+}
 const REC_MAX = 60;
 let rec2 = null;   // { recorder, chunks, canvas, ctx, started, audioCtx, timer }
 
@@ -1374,10 +1402,20 @@ function drawRecFrame(now) {
   }
 
   // キャラのセリフ（吹き出し）
-  const aiFresh = captions.ai && now - captions.aiAt < 15000;
+  const aiText = aiCaptionNow(now);
+  const aiFresh = aiText && now - captions.aiAt < 15000;
   if (aiFresh) {
     ctx.font = '700 54px "Noto Sans JP", sans-serif';
-    const lines = wrapText(ctx, captions.ai.trim(), W - 240, 4);
+    // 長文はスクロールさせず、文の切れ目で 3 行までのページに分けて、いま話しているページを出す
+    const PAGE = 3, maxW = W - 240;
+    const sentences = aiText.match(/[^。！？!?]+[。！？!?」]*|[。！？!?」]+/g) || [aiText];
+    let page = [];
+    for (const sen of sentences) {
+      const tryLines = wrapText(ctx, page.join("") + sen, maxW, 999);
+      if (page.length && tryLines.length > PAGE) page = [sen]; else page.push(sen);
+    }
+    let lines = wrapText(ctx, page.join(""), maxW, 999);
+    if (lines.length > PAGE) lines = lines.slice(Math.floor((lines.length - 1) / PAGE) * PAGE);   // 1 文が長すぎるときだけ行で送る
     const bh = 90 + lines.length * 78, by = 1330;
     ctx.fillStyle = "rgba(20,30,45,.06)"; roundRect(ctx, 64, by + 10, W - 128, bh, 44); ctx.fill();
     ctx.fillStyle = "#fff"; roundRect(ctx, 60, by, W - 120, bh, 44); ctx.fill();
@@ -1406,21 +1444,18 @@ async function startRec() {
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast("このブラウザは録画に対応していません", 4000); return; }
   const canvas = document.createElement("canvas"); canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext("2d");
-  // 音声：キャラの声 ＋ マイク
-  const AC = window.AudioContext || window.webkitAudioContext;
-  const audioCtx = new AC(); const dest = audioCtx.createMediaStreamDestination();
-  ensureOut();
-  outRecDest ??= outCtx.createMediaStreamDestination();
-  outAnalyser.connect(outRecDest);
-  try { audioCtx.createMediaStreamSource(outRecDest.stream).connect(dest); } catch {}
-  if (micStream) { try { audioCtx.createMediaStreamSource(micStream).connect(dest); } catch {} }
+  // 音声：キャラの声 ＋ マイクを、声を鳴らしているのと同じ AudioContext で混ぜる
+  ensureOut(); outCtx.resume();
+  const dest = outCtx.createMediaStreamDestination();
+  outAnalyser.connect(dest);
   const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
   const mimeType = pickMime();
   const recorder = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 6_000_000 } : undefined);
   const chunks = [];
   recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   recorder.onstop = () => showRecResult(new Blob(chunks, { type: recorder.mimeType || mimeType || "video/webm" }));
-  rec2 = { recorder, chunks, canvas, ctx, started: performance.now(), audioCtx };
+  rec2 = { recorder, chunks, canvas, ctx, started: performance.now(), dest, mic: null };
+  attachMicToRec();
   drawRecFrame(performance.now());
   recorder.start(500);
   $("btnRec").classList.add("on");
@@ -1430,7 +1465,10 @@ function stopRec() {
   if (!rec2) return;
   const r = rec2; rec2 = null;
   try { r.recorder.stop(); } catch {}
-  setTimeout(() => r.audioCtx.close(), 500);
+  setTimeout(() => {
+    try { outAnalyser.disconnect(r.dest); } catch {}
+    if (r.mic) { try { r.mic.src.disconnect(); } catch {} r.mic.tracks.forEach((t) => t.stop()); }
+  }, 600);
   $("btnRec").classList.remove("on"); $("recLabel").textContent = "切り抜き";
 }
 let recBlob = null, recUrl = null;
@@ -1447,7 +1485,17 @@ function showRecResult(blob) {
   $("recSave").onclick = () => { const a = document.createElement("a"); a.href = recUrl; a.download = file.name; a.click(); };
   $("recScrim").classList.add("open");
 }
-let outRecDest = null;
+// 録画中のマイク（録画開始のあとにマイクオンしても入るように、マイク開始時にも呼ぶ）
+function attachMicToRec() {
+  if (!rec2 || rec2.mic || !micStream || !outCtx) return;
+  try {
+    const tracks = micStream.getAudioTracks().map((t) => t.clone());
+    const src = outCtx.createMediaStreamSource(new MediaStream(tracks));
+    const gain = outCtx.createGain(); gain.gain.value = 1.4;
+    src.connect(gain).connect(rec2.dest);
+    rec2.mic = { src, tracks };
+  } catch (e) { console.warn("録画にマイクを入れられませんでした", e); }
+}
 $("btnRec").onclick = () => rec2 ? stopRec() : startRec();
 $("mRec").onclick = () => { $("menuScrim").classList.remove("open"); if (!rec2) startRec(); };
 $("recClose").onclick = () => { $("recScrim").classList.remove("open"); $("recVideo").pause(); };
