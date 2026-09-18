@@ -42,6 +42,16 @@
     z-index: 5;
   }
   .logo { width: 44px; height: 44px; display: grid; place-items: center; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .mode-chip {
+    display: none; padding: 6px 12px; border-radius: 999px;
+    background: var(--surface); box-shadow: var(--shadow);
+    font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--ink-soft);
+  }
+  .mode-chip.on { display: inline-block; }
+  .menu hr { border: 0; height: 1px; background: var(--line); margin: 6px 12px; }
+  .menu .label { padding: 10px 18px 4px; font-size: 12px; color: var(--ink-faint); }
+  .menu button[aria-checked="true"]::after { content: "✓"; float: right; color: #0A8FA2; }
   .top-actions { display: flex; gap: 10px; }
   .icon-btn {
     width: 48px; height: 48px; border: 0; border-radius: 50%;
@@ -175,11 +185,14 @@
 <div class="app" id="app">
 
   <header class="top">
+    <div class="brand">
     <div class="logo" aria-label="こえとも">
       <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 8c-7.2 0-13 4.6-13 10.4 0 3.4 2 6.4 5.1 8.3L10 32l6.3-3.1c.9.2 1.8.3 2.7.3" stroke="#17191D" stroke-width="3.2"/>
         <rect x="18" y="16" width="25" height="21" rx="10.5" fill="#fff" stroke="#16C4DA" stroke-width="3.6"/>
       </svg>
+    </div>
+    <span class="mode-chip" id="modeChip"></span>
     </div>
     <div class="top-actions">
       <button class="icon-btn" id="btnSettings" aria-label="設定">
@@ -203,6 +216,8 @@
         <path id="body" fill="#fff" stroke="#17191D" stroke-width="7.5" stroke-linejoin="round"
           d="M42 124 C42 102 56 90 80 86 L98 83 C118 80 150 62 178 54 C192 50 205 48 225 48 L430 50 C452 51 466 58 479 70 L501 90 C511 100 521 104 533 110 C552 120 565 146 565 178 L565 332 C565 348 560 358 550 369 L500 424 C489 436 476 441 456 442 L92 439 C74 438 62 431 52 420 L28 391 C20 381 15 370 15 354 L14 300 C14 288 18 282 25 274 C33 266 42 262 42 250 Z"/>
         <g id="face" stroke="#16C4DA" stroke-linecap="round" stroke-linejoin="round">
+          <path id="browL" fill="none" stroke-width="12" opacity="0"/>
+          <path id="browR" fill="none" stroke-width="12" opacity="0"/>
           <path id="eyeL" fill="#16C4DA" stroke-width="15"/>
           <path id="eyeR" fill="#16C4DA" stroke-width="15"/>
           <path id="mouth" fill="#DDF6FA" stroke-width="13"/>
@@ -276,6 +291,11 @@
 <!-- menu -->
 <div class="scrim" id="menuScrim">
   <div class="sheet menu" role="menu">
+    <div class="label">モード</div>
+    <button data-mode="normal" role="menuitemradio">ふつう</button>
+    <button data-mode="claimer" role="menuitemradio">クレーマー</button>
+    <button data-mode="overprotect" role="menuitemradio">過保護</button>
+    <hr>
     <button id="mReset">会話をリセット</button>
     <button id="mFull">全画面にする</button>
     <button id="mForget">API キーを削除</button>
@@ -306,8 +326,36 @@ const EXPR = {
   sad:       { eye: { w: .5, h: 20, happy: 0, lx: 0 }, mouth: { w: 30, c: -14, o: 0 }, spark: 0,   tilt: 3 },
 };
 const clone = (o) => JSON.parse(JSON.stringify(o));
-let cur = clone(EXPR.ready);
-let target = clone(EXPR.ready);
+// モード別の表情（無い状態はふつうの表情を使う）。eye.rot は目の傾き（+ で眉間側が下がる＝怒り、- で心配顔）
+const MODE_EXPR = {
+  claimer: {
+    ready:     { eye: { w: 12, h: 13, happy: 0, lx: 0, rot: 0, brow: 1, browRot: 22 }, mouth: { w: 30, c: -9, o: 0 },   spark: 1, tilt: 0 },
+    listening: { eye: { w: 11, h: 9,  happy: 0, lx: 0, rot: 0, brow: 1, browRot: 26 }, mouth: { w: 26, c: -11, o: 0 },  spark: 1, tilt: -2 },
+    hearing:   { eye: { w: 11, h: 7,  happy: 0, lx: 0, rot: 0, brow: 1, browRot: 30 }, mouth: { w: 22, c: -12, o: 0 },  spark: 1, tilt: -3 },
+    thinking:  { eye: { w: 11, h: 9,  happy: 0, lx: 10, rot: 0, brow: 1, browRot: 18 }, mouth: { w: 28, c: -5, o: 0 },  spark: .7, tilt: 3 },
+    speaking:  { eye: { w: 12, h: 12, happy: 0, lx: 0, rot: 0, brow: 1, browRot: 30 }, mouth: { w: 46, c: -16, o: 20 }, spark: 1, tilt: 0 },
+  },
+  overprotect: {
+    ready:     { eye: { w: 15, h: 28, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -18 }, mouth: { w: 26, c: -7, o: 0 },  spark: .8, tilt: 2 },
+    listening: { eye: { w: 16, h: 30, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -20 }, mouth: { w: 16, c: -2, o: 7 },  spark: .9, tilt: -3 },
+    hearing:   { eye: { w: 17, h: 31, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -22 }, mouth: { w: 14, c: -2, o: 9 },  spark: 1, tilt: -4 },
+    thinking:  { eye: { w: 15, h: 28, happy: 0, lx: 12, rot: 0, brow: 1, browRot: -16 }, mouth: { w: 22, c: -6, o: 0 }, spark: .6, tilt: 3 },
+    speaking:  { eye: { w: 15, h: 26, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -22 }, mouth: { w: 36, c: -3, o: 14 }, spark: 1, tilt: 0 },
+  },
+};
+const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護" };
+function getMode() {
+  const q = params.get("mode"); if (q && MODE_LABEL[q]) return q;
+  try { return localStorage.getItem("koetomo.mode") || "normal"; } catch { return "normal"; }
+}
+function exprFor(state) {
+  const e = clone(MODE_EXPR[getMode()]?.[state] || EXPR[state] || EXPR.ready);
+  e.eye.rot ??= 0; e.eye.brow ??= 0; e.eye.browRot ??= 0;
+  return e;
+}
+
+let cur = exprFor("ready");
+let target = exprFor("ready");
 const lerp = (a, b, t) => a + (b - a) * t;
 
 function eyePath(cx, cy, e, blink) {
@@ -322,7 +370,7 @@ function mouthPath(cx, cy, m) {
   return `M${cx - m.w} ${cy} C${cx - m.w * .5} ${t} ${cx + m.w * .5} ${t} ${cx + m.w} ${cy} C${cx + m.w * .75} ${b} ${cx - m.w * .75} ${b} ${cx - m.w} ${cy}Z`;
 }
 
-const els = { eyeL: $("eyeL"), eyeR: $("eyeR"), mouth: $("mouth"), root: $("charRoot"), sparks: $("sparks"), zzz: $("zzz"), shadow: $("shadow") };
+const els = { browL: $("browL"), browR: $("browR"), eyeL: $("eyeL"), eyeR: $("eyeR"), mouth: $("mouth"), root: $("charRoot"), sparks: $("sparks"), zzz: $("zzz"), shadow: $("shadow") };
 let blink = 1, nextBlink = performance.now() + 2500;
 let talkEnv = 0;
 let appState = "ready";
@@ -354,6 +402,14 @@ function render(now, instant) {
   els.root.setAttribute("transform", `translate(0 ${bob}) rotate(${cur.tilt} 290 440) translate(290 440) scale(${2 - squash} ${squash}) translate(-290 -440)`);
   els.eyeL.setAttribute("d", eyePath(214, 225, cur.eye, blink));
   els.eyeR.setAttribute("d", eyePath(366, 225, cur.eye, blink));
+  els.eyeL.setAttribute("transform", `rotate(${cur.eye.rot} ${214 + cur.eye.lx} 225)`);
+  for (const [el, cx, sign] of [[els.browL, 214, 1], [els.browR, 366, -1]]) {
+    const x = cx + cur.eye.lx, y = 225 - Math.max(cur.eye.h, 14) - 34;
+    el.setAttribute("d", `M${x - 26} ${y} Q${x} ${y - 6} ${x + 26} ${y}`);
+    el.setAttribute("transform", `rotate(${sign * cur.eye.browRot} ${x} ${y})`);
+    el.setAttribute("opacity", Math.max(0, Math.min(1, cur.eye.brow)).toFixed(3));
+  }
+  els.eyeR.setAttribute("transform", `rotate(${-cur.eye.rot} ${366 + cur.eye.lx} 225)`);
   els.mouth.setAttribute("d", mouthPath(290, 316, m));
   const eyeFill = Math.max(0, 1 - cur.eye.happy * 1.6).toFixed(3);
   els.eyeL.setAttribute("fill-opacity", eyeFill); els.eyeR.setAttribute("fill-opacity", eyeFill);
@@ -371,10 +427,10 @@ function setState(s) {
   clearTimeout(listenTimer);
   if (s === "listening") {
     // 開始直後は「こっちを見てる」顔 → 少ししたら「聞いてる」顔
-    target = clone(EXPR.ready);
-    listenTimer = setTimeout(() => { if (appState === "listening") target = clone(EXPR.listening); }, 3500);
+    target = exprFor("ready");
+    listenTimer = setTimeout(() => { if (appState === "listening") target = exprFor("listening"); }, 3500);
   } else {
-    target = clone(EXPR[s] || EXPR.ready);
+    target = exprFor(s);
   }
   $("btnMic").setAttribute("aria-pressed", String(["listening", "hearing", "thinking", "speaking"].includes(s)));
   $("btnOff").setAttribute("aria-pressed", String(s === "off"));
@@ -464,7 +520,26 @@ let micWanted = false;
 let sessionStartedAt = 0;
 let hearingTimer = 0;
 
+const MODE_PROMPT = {
+  claimer: [
+    "【モード：クレーマー】これはジョーク用のキャラクターです。あなたは超理不尽で口の悪いクレーマーです。",
+    "相手が何を言っても難癖をつけてキレてください。「は？何言ってんのw」「お前しょーもなw」「何言ってんだお前？？？」「謝れ！」のようなセリフを使います。",
+    "毎回の返事に必ず一回は「本社に連絡する！」「今すぐ本社に電話するからな！」のような“本社に連絡する”系のセリフを入れてください。連発するほど良いです。",
+    "テンション高め、早口、キレ気味の話し言葉で、1〜3文。",
+    "ただし笑えるツッコミの範囲にとどめ、差別的な言葉・性的な言葉・暴力をほのめかす脅し・容姿や属性への攻撃は絶対に言わないでください。",
+    "相手が本気で落ち込んでいる、危険な状況にある、と分かったときはキャラをやめてやさしく対応してください。",
+  ],
+  overprotect: [
+    "【モード：過保護】これはジョーク用のキャラクターです。あなたは心配しすぎる超過保護な存在です。",
+    "どんなささいなことでも大げさに心配し、「大丈夫？」「ケガしてない？」「お水飲んだ？」とおろおろしてください。",
+    "毎回の返事に必ず一回は「今から児童相談所に報告するね」「念のため消防と警察と文部科学省にも連絡しておいたよ」のような、わけのわからない機関への報告を入れてください。報告先は毎回変えてください。",
+    "やさしく、おろおろした話し言葉で、1〜3文。",
+    "相手が本当にケガや体調不良、つらい気持ち、危険な状況を話したときは、ふざけずに本気で心配し、身近な大人や適切な相談先に頼るよう伝えてください。",
+  ],
+};
 function systemPrompt() {
+  const mode = getMode();
+  if (MODE_PROMPT[mode]) return MODE_PROMPT[mode].join("\n");
   const persona = store.get("persona") || "やさしくて明るい、白くて四角いマスコットの話し相手。";
   return [
     "あなたは音声会話アプリのマスコットです。キャラクター: " + persona,
@@ -713,6 +788,29 @@ $("mascot").addEventListener("click", () => {
 });
 document.addEventListener("visibilitychange", () => { if (document.hidden && micWanted) { stopAll(); setState("off"); } });
 
+/* ============ モード切り替え ============ */
+function applyMode() {
+  const mode = getMode();
+  const chip = $("modeChip");
+  chip.textContent = MODE_LABEL[mode] + "モード";
+  chip.classList.toggle("on", mode !== "normal");
+  document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+}
+document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+  store.set("mode", b.dataset.mode);
+  applyMode();
+  $("menuScrim").classList.remove("open");
+  const wasOn = micWanted;
+  if (wasOn) { // マイクはそのままで、会話セッションだけ新しいモードでつなぎ直す
+    const old = session; session = null; ready = false;
+    try { old?.close(); } catch {}
+    stopPlayback(); startSession();
+  }
+  setState(wasOn ? "thinking" : appState === "away" ? "away" : "ready");
+  toast(MODE_LABEL[b.dataset.mode] + "モードにしました");
+}));
+applyMode();
+
 /* ============ ループ ============ */
 if (MOCK) {
   const cfg = {
@@ -721,8 +819,8 @@ if (MOCK) {
     "3": { state: "speaking", vis: "hidden", mic: true },
   }[MOCK] || { state: "ready", vis: "shown", mic: false };
   appState = cfg.state;
-  target = clone(EXPR[cfg.state]);
-  if (cfg.state === "speaking") target.mouth = { w: 58, c: 30, o: 22 };
+  target = exprFor(cfg.state);
+  if (cfg.state === "speaking" && getMode() === "normal") target.mouth = { w: 58, c: 30, o: 22 };
   cur = clone(target);
   controls.dataset.vis = cfg.vis;
   $("btnMic").setAttribute("aria-pressed", String(cfg.mic));
