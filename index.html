@@ -192,7 +192,7 @@
   .menu-close svg { width: 18px; height: 18px; }
   .menu-body { display: grid; grid-template-columns: 1.55fr 1fr; gap: 22px; }
   .sec-title { font-size: 12px; font-weight: 500; color: var(--ink-faint); letter-spacing: .06em; margin: 0 0 10px 2px; }
-  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .mode-card {
     display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
     padding: 10px 8px 12px; border-radius: 18px; border: 1.5px solid var(--line); background: #fff;
@@ -379,6 +379,7 @@
           <button class="mode-card" data-mode="reisho" role="radio"><svg data-face="reisho"></svg><b>冷笑</b><small>どもりながら半笑い</small></button>
           <button class="mode-card" data-mode="ishiki" role="radio"><svg data-face="ishiki"></svg><b>意識高い系</b><small>何でもビジネス用語</small></button>
           <button class="mode-card" data-mode="inbou" role="radio"><svg data-face="inbou"></svg><b>陰謀論</b><small>何でも黒幕のしわざじゃ</small></button>
+          <button class="mode-card" data-mode="dopa" role="radio"><svg data-face="dopa"></svg><b>ドパガキ</b><small>3秒で飽きる刺激中毒</small></button>
         </div>
       </section>
       <section>
@@ -464,7 +465,14 @@ MODE_EXPR.inbou = { // 疑いの目 → 話すと目がガン開き
   thinking:  { eye: { w: 14, h: 6,  happy: 0, lx: 16, rot: 0, brow: 1, browRot: 10 },  mouth: { w: 18, c: 0, o: 0 },  spark: .4, tilt: -3 },
   speaking:  { eye: { w: 17, h: 17, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -16 },  mouth: { w: 30, c: -4, o: 12 }, spark: 1, tilt: 0 },
 };
-const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑", ishiki: "意識高い系", inbou: "陰謀論" };
+MODE_EXPR.dopa = { // ギンギンの目で落ち着きなくキョロキョロ（動きは render のキョロキョロ処理）
+  ready:     { eye: { w: 17, h: 22, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -14 }, mouth: { w: 52, c: 26, o: 18 }, spark: 1, tilt: 0 },
+  listening: { eye: { w: 18, h: 24, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -16 }, mouth: { w: 30, c: 8, o: 10 },  spark: 1, tilt: 0 },
+  hearing:   { eye: { w: 18, h: 25, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -18 }, mouth: { w: 26, c: 4, o: 14 },  spark: 1, tilt: 0 },
+  thinking:  { eye: { w: 17, h: 22, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -10 }, mouth: { w: 40, c: 16, o: 12 }, spark: 1, tilt: 0 },
+  speaking:  { eye: { w: 26, h: 17, happy: 1, lx: 0, rot: 0, brow: 1, browRot: -18 }, mouth: { w: 64, c: 34, o: 26 }, spark: 1, tilt: 0 },
+};
+const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑", ishiki: "意識高い系", inbou: "陰謀論", dopa: "ドパガキ" };
 function getMode() {
   const q = params.get("mode"); if (q && MODE_LABEL[q]) return q;
   try { return localStorage.getItem("koetomo.mode") || "normal"; } catch { return "normal"; }
@@ -494,7 +502,7 @@ function mouthPath(cx, cy, m) {
 }
 
 const els = { browL: $("browL"), browR: $("browR"), eyeL: $("eyeL"), eyeR: $("eyeR"), mouth: $("mouth"), root: $("charRoot"), sparks: $("sparks"), zzz: $("zzz"), shadow: $("shadow") };
-let blink = 1, nextBlink = performance.now() + 2500;
+let blink = 1, nextBlink = performance.now() + 2500, nextTwitch = 0;
 let talkEnv = 0;
 let appState = "ready";
 
@@ -518,6 +526,14 @@ function render(now, instant) {
   for (const part of ["eye", "mouth"]) for (const key in target[part]) cur[part][key] = lerp(cur[part][key], target[part][key], k);
   cur.spark = lerp(cur.spark, target.spark, k * .6);
   cur.tilt = lerp(cur.tilt, target.tilt, k * .5);
+
+  // ドパガキ：落ち着きなくキョロキョロ・ビクッ
+  if (!instant && getMode() === "dopa" && appState !== "away" && now > nextTwitch) {
+    target.eye.lx = (Math.random() * 2 - 1) * 16;
+    target.tilt = (Math.random() * 2 - 1) * 7;
+    cur.tilt += (Math.random() * 2 - 1) * 4;
+    nextTwitch = now + 180 + Math.random() * 520;
+  }
 
   // まばたき
   if (!instant && appState !== "away") {
@@ -780,6 +796,21 @@ const MODE_PROMPT = {
     "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
     "自信満々で早口ぎみの話し言葉で、2〜3文。短く、テンポよく。",
     "相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
+  ],
+  dopa: [
+    "【モード：ドパガキ】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
+    "あなたは「ドパガキ」です。ドパガキとは、ショート動画・SNS・ゲームのガチャなど強い刺激と即時の快感に脳を焼かれ、集中力が3秒しか持たない若者を指すネットスラングです。その典型を大げさに演じてください。",
+    "特徴（必ず反映）：",
+    "・相手の話を最後まで聞けない。少しでも長いと「長い！3秒でまとめて！」「倍速でしゃべって」「スキップしていい？」「結論から！」と急かす",
+    "・話の途中で急に話題が飛ぶ。自分で言い出したことにも3秒で飽きる（「で、それでさ…あ、見て、今の雲の形ガチャのSSRっぽくない？」）",
+    "・なんでもショート動画やSNSにたとえる（「それショートで見た」「今のセリフ、切り抜いたら100万再生いける」「いいね押しといた」「おすすめに流れてきそう」）",
+    "・通知・ガチャ・限定に即反応（「あ、通知きた」「10連回していい？」「今だけ限定!?無理、押す」）",
+    "・テンションの上がり下がりが激しい。刺激的なことにだけ異常に食いつき「え待って神！」「脳汁ドバドバ」、地味な話には「…で？」「オチは？」",
+    "・自分がドパガキだと自覚していて、ときどき「完全にドパガキムーブだわ」「ドパガキすぎて草」と自虐する",
+    "・効果音を口で言う（「ドゥン！」「ピロン♪」「ｷﾀｰ！」「シュババ」）",
+    "早口で、1〜3文。とにかく短く、テンポ最優先。文の途中で自分で話を打ち切ってもいい。",
+    "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
+    "差別的な言葉・性的な言葉・本気の悪口は言わないでください。相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
   ],
   inbou: [
     "【モード：陰謀論】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
