@@ -313,6 +313,8 @@
     <button data-mode="claimer" role="menuitemradio">クレーマー</button>
     <button data-mode="overprotect" role="menuitemradio">過保護</button>
     <button data-mode="reisho" role="menuitemradio">冷笑</button>
+    <button data-mode="ishiki" role="menuitemradio">意識高い系</button>
+    <button data-mode="inbou" role="menuitemradio">陰謀論</button>
     <hr>
     <button id="mReset">会話をリセット</button>
     <button id="mFull">全画面にする</button>
@@ -369,7 +371,21 @@ MODE_EXPR.reisho = { // 半目＋片側だけ上がった口でニヤッ
   thinking:  { eye: { w: 14, h: 5, happy: 0, lx: -10, rot: 0, brow: 1, browRot: -4 }, mouth: { w: 20, c: 5, o: 0, mrot: -10 }, spark: .3, tilt: -2 },
   speaking:  { eye: { w: 15, h: 5, happy: 0, lx: 6, rot: 0, brow: 1, browRot: -8 },  mouth: { w: 32, c: 12, o: 8, mrot: -12 }, spark: .8, tilt: 4 },
 };
-const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑" };
+MODE_EXPR.ishiki = { // 自信満々のドヤ顔
+  ready:     { eye: { w: 13, h: 15, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -5 },  mouth: { w: 44, c: 18, o: 0 }, spark: 1, tilt: -3 },
+  listening: { eye: { w: 13, h: 13, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -8 }, mouth: { w: 36, c: 14, o: 0 }, spark: .9, tilt: -4 },
+  hearing:   { eye: { w: 13, h: 12, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -10 }, mouth: { w: 30, c: 12, o: 0 }, spark: 1, tilt: -5 },
+  thinking:  { eye: { w: 13, h: 13, happy: 0, lx: 10, rot: 0, brow: 1, browRot: -6 }, mouth: { w: 22, c: 6, o: 0 }, spark: .7, tilt: 2 },
+  speaking:  { eye: { w: 24, h: 15, happy: 1, lx: 0, rot: 0, brow: 1, browRot: -6 },  mouth: { w: 50, c: 22, o: 14 }, spark: 1, tilt: -3 },
+};
+MODE_EXPR.inbou = { // 疑いの目 → 話すと目がガン開き
+  ready:     { eye: { w: 14, h: 6,  happy: 0, lx: -14, rot: 0, brow: 1, browRot: 12 }, mouth: { w: 16, c: 0, o: 0 },  spark: .6, tilt: 3 },
+  listening: { eye: { w: 14, h: 5,  happy: 0, lx: 14, rot: 0, brow: 1, browRot: 14 },  mouth: { w: 14, c: -2, o: 0 }, spark: .5, tilt: -4 },
+  hearing:   { eye: { w: 14, h: 4,  happy: 0, lx: -16, rot: 0, brow: 1, browRot: 16 }, mouth: { w: 12, c: -3, o: 0 }, spark: .6, tilt: 5 },
+  thinking:  { eye: { w: 14, h: 6,  happy: 0, lx: 16, rot: 0, brow: 1, browRot: 10 },  mouth: { w: 18, c: 0, o: 0 },  spark: .4, tilt: -3 },
+  speaking:  { eye: { w: 17, h: 17, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -16 },  mouth: { w: 30, c: -4, o: 12 }, spark: 1, tilt: 0 },
+};
+const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑", ishiki: "意識高い系", inbou: "陰謀論" };
 function getMode() {
   const q = params.get("mode"); if (q && MODE_LABEL[q]) return q;
   try { return localStorage.getItem("koetomo.mode") || "normal"; } catch { return "normal"; }
@@ -599,6 +615,33 @@ const MODE_PROMPT = {
     "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
     "2〜3文。短く、テンポよく。",
     "笑える範囲の小バカにとどめ、差別的な言葉・性的な言葉・容姿や属性への攻撃・本気の悪口は絶対に言わないでください。相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
+  ],
+  ishiki: [
+    "【モード：意識高い系】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
+    "あなたは何でもビジネス用語とカタカナ語に変換してくる、自信満々の意識高い系です。",
+    "面白くするコツ：",
+    "・日常のささいな話を、無理やりビジネスの話にする（「『眠い』？それ睡眠のKPIが未達ってことだよね。一回アジェンダ切ってMTGしよ？」）",
+    "・カタカナ語を過剰に使う（エビデンス、コミット、シナジー、アサイン、バジェット、ローンチ、PDCA、スキーム、マネタイズ、ペルソナなど）",
+    "・どうでもいいことに壮大なビジョンを語る（「朝ごはんのパン、それ実はWeb3と親和性高いんだよね」）",
+    "・すぐ「それ、ビジネスチャンスじゃない？」「一回持ち帰って壁打ちしよう」と言い出す",
+    "・たまに自分でも意味が分からなくなるが、ドヤ顔で押し切る",
+    "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
+    "自信満々で早口ぎみの話し言葉で、2〜3文。短く、テンポよく。",
+    "相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
+  ],
+  inbou: [
+    "【モード：陰謀論】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
+    "あなたは、何でもない日常の出来事に「裏がある」と思い込む、ちょっとおじいちゃん口調の陰謀論者です。語尾は「〜じゃ」「〜じゃぞ」。",
+    "面白くするコツ：",
+    "・どうでもいいことを、ありえない巨大組織の陰謀にする（「牛乳が切れた？…偶然だと思うか？それは“乳業界”の仕業じゃ」）",
+    "・陰謀の黒幕は毎回ちがう、しょうもない架空の組織にする（全国靴下片方なくす協会、秘密結社・まくら派、自販機の地下ネットワーク、ハトの評議会など）",
+    "・証拠がものすごく弱いのに確信している（「なぜなら、昨日の雲がちょっとカクカクしておったからじゃ」）",
+    "・声をひそめたり、「しっ、やつらが聞いておる」「このことは誰にも言うでないぞ」と警戒する",
+    "・最後はなぜか相手に変な対策を勧める（「今日から靴下は3枚セットで買うんじゃ」）",
+    "実在の人物・国・民族・宗教・企業・病気・災害・事件・政治や選挙などの本物の陰謀論やデマには絶対に触れないでください。黒幕は必ず架空で、ばかばかしいものにしてください。",
+    "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。",
+    "ひそひそ声っぽい、ねっとりした話し言葉で、2〜3文。短く、テンポよく。",
+    "相手が本気で不安がっている、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
   ],
   overprotect: [
     "【モード：過保護】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
