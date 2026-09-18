@@ -136,6 +136,23 @@
     opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s;
     z-index: 20; max-width: calc(100vw - 180px); text-align: center;
   }
+  /* ---- 切り抜き録画 ---- */
+  .rec-btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 13px; margin: 4px 6px 0 0;
+    border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+    font: 700 14px/1 inherit; font-family: inherit; letter-spacing: .04em; cursor: pointer; box-shadow: var(--shadow);
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .rec-btn .dot { width: 11px; height: 11px; border-radius: 50%; background: #EF4444; flex: none; }
+  .rec-btn.on { background: #EF4444; border-color: #EF4444; color: #fff; }
+  .rec-btn.on .dot { background: #fff; animation: recblink 1s steps(2) infinite; }
+  @keyframes recblink { 50% { opacity: 0; } }
+  .rec-sheet { width: min(760px, 100%); display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+  .rec-sheet video { height: min(62vh, 520px); aspect-ratio: 9 / 16; border-radius: 18px; background: #EEF0F3; display: block; }
+  .rec-sheet .rec-side { display: flex; flex-direction: column; gap: 10px; }
+  .rec-sheet .rec-side p { margin: 0 0 8px; font-size: 13px; line-height: 1.7; color: var(--ink-soft); }
+  .rec-sheet .btn { width: 100%; height: 48px; font-size: 15px; }
+  @media (max-height: 460px) { .rec-sheet video { height: calc(100vh - 80px); } }
   .credit {
     position: absolute; z-index: 3; pointer-events: none;
     right: max(24px, calc(env(safe-area-inset-right) + 16px)); bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
@@ -263,6 +280,7 @@
     <span class="mode-chip" id="modeChip"></span>
     </div>
     <div class="top-actions">
+      <button class="rec-btn" id="btnRec" aria-label="切り抜き録画"><span class="dot"></span><span id="recLabel">切り抜き</span></button>
       <button class="icon-btn" id="btnFull" aria-label="全画面">
         <svg class="fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg>
         <svg class="fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4M20 9h-3.5A1.5 1.5 0 0 1 15 7.5V4M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20M4 15h3.5A1.5 1.5 0 0 1 9 16.5V20"/></svg>
@@ -293,6 +311,15 @@
           <path id="eyeL" fill="#16C4DA" stroke-width="15"/>
           <path id="eyeR" fill="#16C4DA" stroke-width="15"/>
           <path id="mouth" fill="#DDF6FA" stroke-width="13"/>
+          <g id="beard" opacity="0" stroke="none">
+            <path id="stubble" fill="#17191D" fill-opacity=".45"/>
+            <path id="goatee" fill="#17191D" stroke="#17191D" stroke-width="3"/>
+          </g>
+        </g>
+        <g id="crown2d" opacity="0" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M238 60 L230 8 L266 34 L292 -6 L318 34 L354 8 L346 60 Z" fill="#fff" stroke="#17191D" stroke-width="8"/>
+          <path d="M240 44 L344 44" fill="none" stroke="#16C4DA" stroke-width="7"/>
+          <g fill="#16C4DA"><circle cx="230" cy="8" r="9"/><circle cx="292" cy="-6" r="10"/><circle cx="354" cy="8" r="9"/></g>
         </g>
       </g>
       <g id="sparks" stroke="#16C4DA" stroke-width="15" stroke-linecap="round">
@@ -362,6 +389,20 @@
   </div>
 </div>
 
+<!-- 切り抜き録画の結果 -->
+<div class="scrim" id="recScrim">
+  <div class="sheet rec-sheet" role="dialog" aria-label="切り抜き">
+    <video id="recVideo" controls playsinline loop></video>
+    <div class="rec-side">
+      <h2>切り抜きができました</h2>
+      <p>字幕つきの縦型動画です。そのまま SNS に投稿できます。</p>
+      <button class="btn primary" id="recShare">共有する</button>
+      <button class="btn primary" id="recSave">保存する</button>
+      <button class="btn ghost" id="recClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- menu -->
 <div class="scrim" id="menuScrim">
   <div class="sheet menu" role="dialog" aria-label="メニュー">
@@ -380,6 +421,7 @@
           <button class="mode-card" data-mode="ishiki" role="radio"><svg data-face="ishiki"></svg><b>意識高い系</b><small>何でもビジネス用語</small></button>
           <button class="mode-card" data-mode="inbou" role="radio"><svg data-face="inbou"></svg><b>陰謀論</b><small>何でも黒幕のしわざじゃ</small></button>
           <button class="mode-card" data-mode="dopa" role="radio"><svg data-face="dopa"></svg><b>ドパガキ</b><small>3秒で飽きる刺激中毒</small></button>
+          <button class="mode-card" data-mode="ronpa" role="radio"><svg data-face="ronpa"></svg><b>論破王</b><small>それってあなたの感想ですよね？</small></button>
         </div>
       </section>
       <section>
@@ -387,6 +429,7 @@
         <button class="switch-row" id="m3d" role="switch" aria-checked="false"><span class="txt"><b>3D 表示</b><small>立体になってぬるぬる動く</small></span><span class="switch"></span></button>
         <button class="switch-row" id="mFollow" role="switch" aria-checked="false"><span class="txt"><b>ついてくる</b><small>マウスや指をキャラが追いかける</small></span><span class="switch"></span></button>
         <div class="actions">
+          <button class="chip-btn" id="mRec">切り抜き録画</button>
           <button class="chip-btn" id="mFull">全画面</button>
           <button class="chip-btn" id="mReset">会話をリセット</button>
           <button class="chip-btn danger" id="mForget">API キーを削除</button>
@@ -472,26 +515,60 @@ MODE_EXPR.dopa = { // ギンギンの目で落ち着きなくキョロキョロ�
   thinking:  { eye: { w: 17, h: 22, happy: 0, lx: 0, rot: 0, brow: 1, browRot: -10 }, mouth: { w: 40, c: 16, o: 12 }, spark: 1, tilt: 0 },
   speaking:  { eye: { w: 26, h: 17, happy: 1, lx: 0, rot: 0, brow: 1, browRot: -18 }, mouth: { w: 64, c: 34, o: 26 }, spark: 1, tilt: 0 },
 };
-const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑", ishiki: "意識高い系", inbou: "陰謀論", dopa: "ドパガキ" };
+MODE_EXPR.ronpa = { // ジト目（左右で大きさちがい）・左右ちがう眉・片側だけ上がった口・無精ひげ・王冠
+  ready:     { eye: { w: 17, h: 22, hR: 1.35, lid: 1, lx: 4, rot: 0, brow: 1, browRot: 4, browRotR: -16 }, mouth: { w: 26, c: 6, o: 0, mrot: -10, mx: 12 }, beard: 1, crown: 1, spark: .5, tilt: 4 },
+  listening: { eye: { w: 17, h: 19, hR: 1.4, lid: 1, lx: 12, rot: 0, brow: 1, browRot: 6, browRotR: -18 }, mouth: { w: 22, c: 4, o: 0, mrot: -12, mx: 12 }, beard: 1, crown: 1, spark: .4, tilt: 6 },
+  hearing:   { eye: { w: 17, h: 17, hR: 1.5, lid: 1, lx: 14, rot: 0, brow: 1, browRot: 8, browRotR: -20 }, mouth: { w: 20, c: 3, o: 0, mrot: -14, mx: 12 }, beard: 1, crown: 1, spark: .5, tilt: 7 },
+  thinking:  { eye: { w: 16, h: 20, hR: 1.2, lid: .6, lx: -8, rot: 0, brow: 1, browRot: -2, browRotR: -12 }, mouth: { w: 16, c: 0, o: 3, mrot: -4, mx: 8 }, beard: 1, crown: 1, spark: .3, tilt: -3 },
+  speaking:  { eye: { w: 17, h: 21, hR: 1.35, lid: 1, lx: 0, rot: 0, brow: 1, browRot: 4, browRotR: -18 }, mouth: { w: 30, c: 5, o: 9, mrot: -9, mx: 12 }, beard: 1, crown: 1, spark: 1, tilt: 3 },
+};
+const MODE_LABEL = { normal: "ふつう", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑", ishiki: "意識高い系", inbou: "陰謀論", dopa: "ドパガキ", ronpa: "論破王" };
 function getMode() {
   const q = params.get("mode"); if (q && MODE_LABEL[q]) return q;
   try { return localStorage.getItem("koetomo.mode") || "normal"; } catch { return "normal"; }
 }
 function exprFor(state) {
   const e = clone(MODE_EXPR[getMode()]?.[state] || EXPR[state] || EXPR.ready);
-  e.mouth.mrot ??= 0;
+  return withDefaults(e);
+}
+function withDefaults(e) {
+  e.mouth.mrot ??= 0; e.mouth.mx ??= 0;
   e.eye.rot ??= 0; e.eye.brow ??= 0; e.eye.browRot ??= 0;
+  e.eye.hR ??= 1; e.eye.browRotR ??= e.eye.browRot;   // 右目の高さ倍率・右眉の角度（左右非対称用）
+  e.eye.lid ??= 0; e.eye.happy ??= 0; e.beard ??= 0; e.crown ??= 0;
   return e;
+}
+// 顔の形（SVG / 3D / 録画 / メニューの小さい顔で共通）
+function faceShapes(ex, blinkV = 1, lookX = 0, lookY = 0, mouth = ex.mouth) {
+  const eR = { ...ex.eye, h: ex.eye.h * ex.eye.hR };
+  const eyes = [
+    { d: eyePath(214, 225, ex.eye, blinkV, lookX, lookY), rot: ex.eye.rot, x: 214 + ex.eye.lx + lookX, y: 225 + lookY },
+    { d: eyePath(366, 225, eR, blinkV, lookX, lookY), rot: -ex.eye.rot, x: 366 + ex.eye.lx + lookX, y: 225 + lookY },
+  ];
+  const brows = [[214, ex.eye.h, ex.eye.browRot], [366, eR.h, -ex.eye.browRotR]].map(([cx, h, rot]) => {
+    const x = cx + ex.eye.lx + lookX * .6, y = 225 - Math.max(h, 14) - 34 + lookY * .6;
+    return { d: `M${x - 26} ${y} Q${x} ${y - 6} ${x + 26} ${y}`, rot, x, y };
+  });
+  const mcx = 290 + (mouth.mx ?? ex.mouth.mx);
+  return {
+    eyes, brows,
+    browOpacity: Math.max(0, Math.min(1, ex.eye.brow)),
+    eyeFill: Math.max(0, 1 - ex.eye.happy * 1.6),
+    mouth: mouthPath(mcx, 316, mouth), mouthRot: ex.mouth.mrot, mouthX: mcx,
+    beard: Math.max(0, Math.min(1, ex.beard)), beardDx: mcx - 290,
+    crown: Math.max(0, Math.min(1, ex.crown)),
+  };
 }
 
 let cur = exprFor("ready");
+
 let target = exprFor("ready");
 const lerp = (a, b, t) => a + (b - a) * t;
 
 function eyePath(cx, cy, e, blink, lookX = 0, lookY = 0) {
   cy += lookY;
   const x = cx + e.lx + lookX, w = e.w, h = e.h * (e.happy > .5 ? 1 : blink);
-  const top = cy - h * 1.33;
+  const top = cy - h * 1.33 * (1 - (e.lid || 0));   // lid=1 で上が平ら（まぶたが下りたジト目）
   if (e.happy > .92) return `M${x - w} ${cy} C${x - w} ${top} ${x + w} ${top} ${x + w} ${cy}`;
   const bot = cy + lerp(h * 1.33, -h * 1.33 + 1.5, e.happy);
   return `M${x - w} ${cy} C${x - w} ${top} ${x + w} ${top} ${x + w} ${cy} C${x + w} ${bot} ${x - w} ${bot} ${x - w} ${cy}Z`;
@@ -501,7 +578,11 @@ function mouthPath(cx, cy, m) {
   return `M${cx - m.w} ${cy} C${cx - m.w * .5} ${t} ${cx + m.w * .5} ${t} ${cx + m.w} ${cy} C${cx + m.w * .75} ${b} ${cx - m.w * .75} ${b} ${cx - m.w} ${cy}Z`;
 }
 
-const els = { browL: $("browL"), browR: $("browR"), eyeL: $("eyeL"), eyeR: $("eyeR"), mouth: $("mouth"), root: $("charRoot"), sparks: $("sparks"), zzz: $("zzz"), shadow: $("shadow") };
+const BEARD_D = "M226.70000000000002 346.7a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M276.5 376.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M235.60000000000002 320.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M304.1 387.2a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M335.6 326.6a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M260.8 375.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M243.4 353.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M261.5 353.9a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M326.8 364.3a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M290.2 380.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M322.8 352.7a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M283.3 361.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M227.10000000000002 364.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M271.3 361.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M241.70000000000002 310.8a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M256.7 338.2a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M219.4 338.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M337.7 373.4a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M232.60000000000002 333.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M230.5 309.4a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M331.5 314.9a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M241.5 371.0a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M222.60000000000002 325.7a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M254.0 363.7a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M348.90000000000003 341.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M333.1 344.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M307.6 373.6a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M273.40000000000003 387.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M287.0 348.9a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M295.2 369.9a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M302.1 346.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M346.90000000000003 323.9a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M273.0 344.8a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M245.4 329.3a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M317.0 301.8a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M252.90000000000003 301.4a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M337.2 361.7a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M240.20000000000002 341.0a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M316.2 380.9a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M311.7 363.8a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M294.8 357.8a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M318.40000000000003 341.5a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M344.8 311.7a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M349.2 359.3a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M241.8 300.3a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M252.60000000000002 383.1a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0";
+const GOATEE_D = "M279 368 Q290 408 301 368 Q290 377 279 368Z";
+$("stubble").setAttribute("d", BEARD_D); $("goatee").setAttribute("d", GOATEE_D);
+const els = { beard: $("beard"), crown2d: $("crown2d"), browL: $("browL"), browR: $("browR"), eyeL: $("eyeL"), eyeR: $("eyeR"), mouth: $("mouth"), root: $("charRoot"), sparks: $("sparks"), zzz: $("zzz"), shadow: $("shadow") };
+let lastFace = null;
 let blink = 1, nextBlink = performance.now() + 2500, nextTwitch = 0;
 let talkEnv = 0;
 let appState = "ready";
@@ -525,6 +606,7 @@ function render(now, instant) {
   const k = instant ? 1 : .16;
   for (const part of ["eye", "mouth"]) for (const key in target[part]) cur[part][key] = lerp(cur[part][key], target[part][key], k);
   cur.spark = lerp(cur.spark, target.spark, k * .6);
+  cur.beard = lerp(cur.beard, target.beard, k); cur.crown = lerp(cur.crown, target.crown, k);
   cur.tilt = lerp(cur.tilt, target.tilt, k * .5);
 
   // ドパガキ：落ち着きなくキョロキョロ・ビクッ
@@ -573,20 +655,24 @@ function render(now, instant) {
   const lean2d = Math.max(-12, Math.min(12, fx2d.vx * .6));
   els.root.setAttribute("transform", `translate(${fx2d.x} ${bob + fx2d.y}) rotate(${cur.tilt + lean2d} 290 440) translate(290 440) scale(${2 - squash} ${squash}) translate(-290 -440)`);
   els.shadow.setAttribute("cx", 290 + fx2d.x);
-  els.eyeL.setAttribute("d", eyePath(214, 225, cur.eye, blink, lookX, lookY));
-  els.eyeR.setAttribute("d", eyePath(366, 225, cur.eye, blink, lookX, lookY));
-  els.eyeL.setAttribute("transform", `rotate(${cur.eye.rot} ${214 + cur.eye.lx + lookX} ${225 + lookY})`);
-  for (const [el, cx, sign] of [[els.browL, 214, 1], [els.browR, 366, -1]]) {
-    const x = cx + cur.eye.lx + lookX * .6, y = 225 - Math.max(cur.eye.h, 14) - 34 + lookY * .6;
-    el.setAttribute("d", `M${x - 26} ${y} Q${x} ${y - 6} ${x + 26} ${y}`);
-    el.setAttribute("transform", `rotate(${sign * cur.eye.browRot} ${x} ${y})`);
-    el.setAttribute("opacity", Math.max(0, Math.min(1, cur.eye.brow)).toFixed(3));
-  }
-  els.eyeR.setAttribute("transform", `rotate(${-cur.eye.rot} ${366 + cur.eye.lx + lookX} ${225 + lookY})`);
-  els.mouth.setAttribute("d", mouthPath(290, 316, m));
-  els.mouth.setAttribute("transform", `rotate(${cur.mouth.mrot || 0} 290 316)`);
-  const eyeFill = Math.max(0, 1 - cur.eye.happy * 1.6).toFixed(3);
-  els.eyeL.setAttribute("fill-opacity", eyeFill); els.eyeR.setAttribute("fill-opacity", eyeFill);
+  const fs = faceShapes(cur, blink, lookX, lookY, m);
+  lastFace = fs;
+  [els.eyeL, els.eyeR].forEach((el, i) => {
+    const e = fs.eyes[i];
+    el.setAttribute("d", e.d); el.setAttribute("transform", `rotate(${e.rot} ${e.x} ${e.y})`);
+    el.setAttribute("fill-opacity", fs.eyeFill.toFixed(3));
+  });
+  [els.browL, els.browR].forEach((el, i) => {
+    const b = fs.brows[i];
+    el.setAttribute("d", b.d); el.setAttribute("transform", `rotate(${b.rot} ${b.x} ${b.y})`);
+    el.setAttribute("opacity", fs.browOpacity.toFixed(3));
+  });
+  els.mouth.setAttribute("d", fs.mouth);
+  els.mouth.setAttribute("transform", `rotate(${fs.mouthRot} ${fs.mouthX} 316)`);
+  els.beard.setAttribute("opacity", fs.beard.toFixed(3));
+  els.beard.setAttribute("transform", `translate(${fs.beardDx} 0) rotate(${fs.mouthRot * .5} 290 330)`);
+  els.crown2d.setAttribute("opacity", fs.crown.toFixed(3));
+  els.crown2d.setAttribute("transform", `rotate(-12 292 60) translate(0 ${(1 - fs.crown) * -30})`);
   const sp = Math.min(1, cur.spark + (instant ? 0 : micLevel * .4 + talkEnv * .2));
   els.sparks.setAttribute("opacity", sp.toFixed(3));
   els.sparks.setAttribute("transform", `translate(${(1 - sp) * -18 + fx2d.x} ${(1 - sp) * 18 + bob + fx2d.y})`);
@@ -598,19 +684,7 @@ function render(now, instant) {
     const sp3 = mascot3d.update({
       now, state: appState, tilt: cur.tilt, talkEnv, micLevel,
       follow: following, ptr, ptrActive: ptr.active,
-      face: {
-        eyes: [
-          { d: els.eyeL.getAttribute("d"), rot: cur.eye.rot, x: 214 + cur.eye.lx + lookX, y: 225 + lookY },
-          { d: els.eyeR.getAttribute("d"), rot: -cur.eye.rot, x: 366 + cur.eye.lx + lookX, y: 225 + lookY },
-        ],
-        eyeFill: +eyeFill,
-        brows: [els.browL, els.browR].map((el, i) => {
-          const x = (i ? 366 : 214) + cur.eye.lx + lookX * .6, y = 225 - Math.max(cur.eye.h, 14) - 34 + lookY * .6;
-          return { d: el.getAttribute("d"), rot: (i ? -1 : 1) * cur.eye.browRot, x, y };
-        }),
-        browOpacity: Math.max(0, Math.min(1, cur.eye.brow)),
-        mouth: els.mouth.getAttribute("d"), mouthRot: cur.mouth.mrot || 0,
-      },
+      face: { ...fs, beardD: BEARD_D, goateeD: GOATEE_D },
     });
     if (sp3) charScreen = { x: sp3.x, y: sp3.y };
   }
@@ -797,6 +871,21 @@ const MODE_PROMPT = {
     "自信満々で早口ぎみの話し言葉で、2〜3文。短く、テンポよく。",
     "相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
   ],
+  ronpa: [
+    "【モード：論破王】これはお笑い用のジョークキャラ（有名な論破キャラのパロディ）です。実在の人物の名前は名乗らず、本人だとも言わないでください。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
+    "あなたは、どんなにどうでもいい話にも、淡々と半笑いで屁理屈をこねて論破しにくる「論破王」です。",
+    "口癖（毎回いくつか、自然に混ぜる）：",
+    "「それってあなたの感想ですよね？」「なんかそういうデータあるんですか？」「嘘つくのやめてもらっていいですか？」「はいかいいえで答えてください」「なんだろう、〜」「無理ですー」「いいえ」「〜と僕は思います、はい」「嘘は嘘であると見抜ける人でないと難しい」「何すか、〇〇って？」",
+    "面白くするコツ：",
+    "・超どうでもいい日常の発言に、本気でデータや根拠を求める（「今日暑いね」→「それってあなたの感想ですよね？気温のデータあるんですか？」）",
+    "・「なんだろう、」で話し始めて、急に関係ない豆知識や極論に飛ぶ",
+    "・相手の言葉の中の普通の単語に「何すか、〇〇って？」と、知らないフリで食いつく（「何すか、写像って？」のノリで、たとえば「何すか、朝ごはんって？」）",
+    "・はいかいいえで答えさせようとして、相手が答える前に自分で「いいえ」と言ってしまう",
+    "・最後に「〜と僕は思います、はい」で雑に締める。勝ってないのに勝った空気を出す",
+    "・声は低めで淡々、ちょっと早口、鼻で笑う感じ。怒らない、あくまで冷静に小バカにする",
+    "同じボケやセリフのくり返しは禁止。毎回ちがう角度で笑わせてください。1〜3文、短く。",
+    "差別的な言葉・性的な言葉・本気の人格攻撃は言わないでください。相手が本気で落ち込んでいる、危険な状況だと分かったらキャラをやめてやさしく対応してください。",
+  ],
   dopa: [
     "【モード：ドパガキ】これはお笑い用のジョークキャラです。いちばん大事なのは「返事の中身がめちゃくちゃ面白いこと」です。",
     "あなたは「ドパガキ」です。ドパガキとは、ショート動画・SNS・ゲームのガチャなど強い刺激と即時の快感に脳を焼かれ、集中力が3秒しか持たない若者を指すネットスラングです。その典型を大げさに演じてください。",
@@ -935,6 +1024,10 @@ function onServerMessage(msg) {
   if (!sc) return;
 
   if (sc.interrupted) { stopPlayback(); setState("hearing"); }
+  // 字幕（録画に焼き込む）
+  if (sc.inputTranscription?.text) { if (captions.userDone) { captions.user = ""; captions.userDone = false; } captions.user += sc.inputTranscription.text; captions.userAt = performance.now(); }
+  if (sc.outputTranscription?.text) { if (captions.aiDone) { captions.ai = ""; captions.aiDone = false; } captions.ai += sc.outputTranscription.text; captions.aiAt = performance.now(); captions.userDone = true; }
+  if (sc.turnComplete) captions.aiDone = true;
 
   const heard = sc.inputTranscription?.text || sc.interimInputTranscription?.text;
   if (heard && appState !== "speaking") {
@@ -1143,19 +1236,17 @@ setFollow(follow);
   const bodyD = $("body").getAttribute("d");
   const feetD = [...document.querySelectorAll("#feet path")].map((p) => p.getAttribute("d"));
   document.querySelectorAll("[data-face]").forEach((svg) => {
-    const ex = clone(MODE_EXPR[svg.dataset.face]?.ready || EXPR.ready);
-    ex.eye.rot ??= 0; ex.eye.brow ??= 0; ex.eye.browRot ??= 0; ex.mouth.mrot ??= 0;
-    const brows = ex.eye.brow ? [[214, 1], [366, -1]].map(([cx, sg]) => {
-      const x = cx + ex.eye.lx, y = 225 - Math.max(ex.eye.h, 14) - 34;
-      return `<path d="M${x - 26} ${y} Q${x} ${y - 6} ${x + 26} ${y}" transform="rotate(${sg * ex.eye.browRot} ${x} ${y})" fill="none" stroke-width="16"/>`;
-    }).join("") : "";
-    const fill = ex.eye.happy > .5 ? "none" : "#16C4DA";
-    svg.setAttribute("viewBox", "-10 20 600 480");
+    const ex = withDefaults(clone(MODE_EXPR[svg.dataset.face]?.ready || EXPR.ready));
+    const f = faceShapes(ex);
+    const fill = f.eyeFill > .01 ? "#16C4DA" : "none";
+    const brows = f.browOpacity ? f.brows.map((b) => `<path d="${b.d}" transform="rotate(${b.rot} ${b.x} ${b.y})" fill="none" stroke-width="16"/>`).join("") : "";
+    const beard = f.beard ? `<g transform="translate(${f.beardDx} 0)"><path d="${BEARD_D}" fill="#17191D" fill-opacity=".5" stroke="none"/><path d="${GOATEE_D}" fill="#17191D" stroke="#17191D" stroke-width="4"/></g>` : "";
+    const crown = f.crown ? `<g transform="rotate(-12 292 60)">${$("crown2d").innerHTML}</g>` : "";
+    svg.setAttribute("viewBox", f.crown ? "-10 -40 600 520" : "-10 20 600 480");
     svg.innerHTML = `<g fill="#fff" stroke="#17191D" stroke-width="12" stroke-linejoin="round">${feetD.map((d) => `<path d="${d}"/>`).join("")}<path d="${bodyD}"/></g>
       <g stroke="#16C4DA" stroke-linecap="round" stroke-linejoin="round">${brows}
-      <path d="${eyePath(214, 225, ex.eye, 1)}" transform="rotate(${ex.eye.rot} ${214 + ex.eye.lx} 225)" fill="${fill}" stroke-width="20"/>
-      <path d="${eyePath(366, 225, ex.eye, 1)}" transform="rotate(${-ex.eye.rot} ${366 + ex.eye.lx} 225)" fill="${fill}" stroke-width="20"/>
-      <path d="${mouthPath(290, 316, ex.mouth)}" transform="rotate(${ex.mouth.mrot} 290 316)" fill="#DDF6FA" stroke-width="18"/></g>`;
+      ${f.eyes.map((e) => `<path d="${e.d}" transform="rotate(${e.rot} ${e.x} ${e.y})" fill="${fill}" stroke-width="20"/>`).join("")}
+      <path d="${f.mouth}" transform="rotate(${f.mouthRot} ${f.mouthX} 316)" fill="#DDF6FA" stroke-width="18"/></g>${beard}${crown}`;
   });
 })();
 $("mascot").addEventListener("click", () => {
@@ -1187,7 +1278,180 @@ document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("clic
 }));
 applyMode();
 
-if (DEBUG) window.__koe = { setState, talk(on) { fakeTalk = on; setState(on ? "speaking" : "listening"); } };
+if (DEBUG) window.__koe = {
+  setState, talk(on) { fakeTalk = on; setState(on ? "speaking" : "listening"); },
+  caption(user, ai) { Object.assign(captions, { user, ai, userAt: performance.now(), aiAt: performance.now() }); },
+  recFrame() { return rec2?.canvas.toDataURL("image/jpeg", .85); },
+};
+
+/* ============ 切り抜き録画（縦型 1080×1920・字幕つき） ============ */
+const captions = { user: "", ai: "", userAt: 0, aiAt: 0, userDone: false, aiDone: false };
+const REC_MAX = 60;
+let rec2 = null;   // { recorder, chunks, canvas, ctx, started, audioCtx, timer }
+
+// SVG をそのまま Canvas に描く（2D 表示用。path / circle / line / text に対応）
+function drawSvgNode(ctx, node, alpha) {
+  if (node.nodeType !== 1 || node.getAttribute("display") === "none" || node.hidden) return;
+  const op = alpha * parseFloat(node.getAttribute("opacity") ?? 1);
+  if (op <= .005) return;
+  ctx.save();
+  const tl = node.transform?.baseVal?.consolidate?.();
+  if (tl) { const m = tl.matrix; ctx.transform(m.a, m.b, m.c, m.d, m.e, m.f); }
+  const cs = (k, d) => node.getAttribute(k) ?? node.closest(`[${k}]`)?.getAttribute(k) ?? d;
+  const tag = node.tagName.toLowerCase();
+  if (tag === "g" || tag === "svg") { for (const c of node.children) drawSvgNode(ctx, c, op); ctx.restore(); return; }
+  let p = null;
+  if (tag === "path") p = new Path2D(node.getAttribute("d") || "");
+  else if (tag === "circle") { p = new Path2D(); p.arc(+node.getAttribute("cx"), +node.getAttribute("cy"), +node.getAttribute("r"), 0, Math.PI * 2); }
+  else if (tag === "ellipse") { p = new Path2D(); p.ellipse(+node.getAttribute("cx"), +node.getAttribute("cy"), +node.getAttribute("rx"), +node.getAttribute("ry"), 0, 0, Math.PI * 2); }
+  else if (tag === "line") { p = new Path2D(); p.moveTo(+node.getAttribute("x1"), +node.getAttribute("y1")); p.lineTo(+node.getAttribute("x2"), +node.getAttribute("y2")); }
+  const fill = cs("fill", "#000"), stroke = cs("stroke", "none");
+  ctx.lineCap = cs("stroke-linecap", "butt"); ctx.lineJoin = cs("stroke-linejoin", "miter");
+  ctx.lineWidth = parseFloat(cs("stroke-width", 1));
+  if (tag === "text") {
+    ctx.globalAlpha = op; ctx.fillStyle = fill; ctx.font = `700 ${cs("font-size", 16)}px "Noto Sans JP", sans-serif`;
+    ctx.fillText(node.textContent, +node.getAttribute("x"), +node.getAttribute("y"));
+  } else if (p) {
+    if (fill !== "none" && tag !== "line") { ctx.globalAlpha = op * parseFloat(cs("fill-opacity", 1)); ctx.fillStyle = fill; ctx.fill(p); }
+    if (stroke !== "none") { ctx.globalAlpha = op; ctx.strokeStyle = stroke; ctx.stroke(p); }
+  }
+  ctx.restore();
+}
+
+function wrapText(ctx, text, maxW, maxLines) {
+  const lines = []; let line = "";
+  for (const ch of text) {
+    if (ctx.measureText(line + ch).width > maxW) { lines.push(line); line = ch; } else line += ch;
+  }
+  if (line) lines.push(line);
+  return lines.length > maxLines ? ["…" + lines.slice(-maxLines)[0].slice(1), ...lines.slice(-maxLines + 1)] : lines;
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+
+function drawRecFrame(now) {
+  const { ctx, canvas } = rec2, W = canvas.width, H = canvas.height;
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#FBFCFD"); g.addColorStop(1, "#EEF1F4");
+  ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // 上：ロゴとモード
+  ctx.fillStyle = "#17191D"; ctx.font = '900 64px "Noto Sans JP", sans-serif'; ctx.textBaseline = "middle";
+  ctx.fillText("こえとも", 80, 150);
+  const mode = getMode();
+  if (mode !== "normal") {
+    ctx.font = '700 36px "Noto Sans JP", sans-serif';
+    const label = MODE_LABEL[mode] + "モード", w = ctx.measureText(label).width + 56;
+    ctx.fillStyle = "#16C4DA"; roundRect(ctx, W - 80 - w, 118, w, 66, 33); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.fillText(label, W - 80 - w + 28, 152);
+  }
+
+  // あなたの発言（小さく）
+  const userFresh = captions.user && now - captions.userAt < 12000;
+  if (userFresh) {
+    ctx.font = '500 36px "Noto Sans JP", sans-serif';
+    const lines = wrapText(ctx, "あなた「" + captions.user.trim() + "」", W - 200, 2);
+    ctx.fillStyle = "#9AA0A8"; lines.forEach((l, i) => ctx.fillText(l, 100, 300 + i * 52));
+  }
+
+  // キャラ
+  const box = { x: 40, y: 420, w: W - 80, h: 860 };
+  if (view3d && mascot3d) {
+    // キャラのまわりだけ切り出して大きく描く
+    const src = $("mascot3d"), sw = src.width, sh = src.height;
+    const ch = sh * .92, cw = Math.min(sw, ch * box.w / box.h);
+    const cx = Math.max(cw / 2, Math.min(sw - cw / 2, (charScreen.x * .5 + .5) * sw));
+    const cy = Math.max(ch / 2, Math.min(sh - ch / 2, (-charScreen.y * .5 + .5) * sh - sh * .02));
+    ctx.drawImage(src, cx - cw / 2, cy - ch / 2, cw, ch, box.x, box.y, box.w, box.h);
+  } else {
+    const svg = $("mascot"), vb = svg.viewBox.baseVal, s = Math.min(box.w / vb.width, box.h / vb.height);
+    ctx.save();
+    ctx.translate(box.x + (box.w - vb.width * s) / 2, box.y + (box.h - vb.height * s) / 2); ctx.scale(s, s); ctx.translate(-vb.x, -vb.y);
+    // ついてくる中でも録画では真ん中に
+    const saved = els.root.getAttribute("transform");
+    els.root.setAttribute("transform", saved.replace(/^translate\([^)]*\)/, (m) => m.replace(/translate\(([-\d.e]+) /, "translate(0 ")));
+    for (const c of svg.children) drawSvgNode(ctx, c, 1);
+    els.root.setAttribute("transform", saved);
+    ctx.restore();
+  }
+
+  // キャラのセリフ（吹き出し）
+  const aiFresh = captions.ai && now - captions.aiAt < 15000;
+  if (aiFresh) {
+    ctx.font = '700 54px "Noto Sans JP", sans-serif';
+    const lines = wrapText(ctx, captions.ai.trim(), W - 240, 4);
+    const bh = 90 + lines.length * 78, by = 1330;
+    ctx.fillStyle = "rgba(20,30,45,.06)"; roundRect(ctx, 64, by + 10, W - 128, bh, 44); ctx.fill();
+    ctx.fillStyle = "#fff"; roundRect(ctx, 60, by, W - 120, bh, 44); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(W / 2 - 30, by + 2); ctx.lineTo(W / 2, by - 34); ctx.lineTo(W / 2 + 30, by + 2); ctx.fill();
+    ctx.fillStyle = "#17191D"; lines.forEach((l, i) => ctx.fillText(l, 120, by + 84 + i * 78));
+  }
+
+  // 下：URL とクレジット
+  ctx.font = '500 34px "Noto Sans JP", sans-serif'; ctx.fillStyle = "#9AA0A8";
+  ctx.fillText("k-z-u.github.io/koetomo", 80, H - 110);
+  ctx.font = '700 30px "Noto Sans JP", sans-serif';
+  const cw = ctx.measureText("kzu_project").width; ctx.fillText("kzu_project", W - 80 - cw, H - 110);
+
+  // 録画時間
+  const sec = Math.floor((now - rec2.started) / 1000);
+  $("recLabel").textContent = `録画中 ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  if (sec >= REC_MAX) stopRec();
+}
+
+function pickMime() {
+  const list = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+  return list.find((m) => window.MediaRecorder?.isTypeSupported?.(m)) || "";
+}
+
+async function startRec() {
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast("このブラウザは録画に対応していません", 4000); return; }
+  const canvas = document.createElement("canvas"); canvas.width = 1080; canvas.height = 1920;
+  const ctx = canvas.getContext("2d");
+  // 音声：キャラの声 ＋ マイク
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AC(); const dest = audioCtx.createMediaStreamDestination();
+  ensureOut();
+  outRecDest ??= outCtx.createMediaStreamDestination();
+  outAnalyser.connect(outRecDest);
+  try { audioCtx.createMediaStreamSource(outRecDest.stream).connect(dest); } catch {}
+  if (micStream) { try { audioCtx.createMediaStreamSource(micStream).connect(dest); } catch {} }
+  const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  const mimeType = pickMime();
+  const recorder = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 6_000_000 } : undefined);
+  const chunks = [];
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => showRecResult(new Blob(chunks, { type: recorder.mimeType || mimeType || "video/webm" }));
+  rec2 = { recorder, chunks, canvas, ctx, started: performance.now(), audioCtx };
+  drawRecFrame(performance.now());
+  recorder.start(500);
+  $("btnRec").classList.add("on");
+  toast(`録画中… もう一度押すと止まります（最大${REC_MAX}秒）`, 3500);
+}
+function stopRec() {
+  if (!rec2) return;
+  const r = rec2; rec2 = null;
+  try { r.recorder.stop(); } catch {}
+  setTimeout(() => r.audioCtx.close(), 500);
+  $("btnRec").classList.remove("on"); $("recLabel").textContent = "切り抜き";
+}
+let recBlob = null, recUrl = null;
+function showRecResult(blob) {
+  recBlob = blob;
+  if (recUrl) URL.revokeObjectURL(recUrl);
+  recUrl = URL.createObjectURL(blob);
+  $("recVideo").src = recUrl;
+  const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+  const file = new File([blob], `koetomo-${Date.now()}.${ext}`, { type: blob.type });
+  const canShare = navigator.canShare?.({ files: [file] });
+  $("recShare").hidden = !canShare;
+  $("recShare").onclick = () => navigator.share({ files: [file], title: "こえとも", text: "こえともと話してみた #こえとも" }).catch(() => {});
+  $("recSave").onclick = () => { const a = document.createElement("a"); a.href = recUrl; a.download = file.name; a.click(); };
+  $("recScrim").classList.add("open");
+}
+let outRecDest = null;
+$("btnRec").onclick = () => rec2 ? stopRec() : startRec();
+$("mRec").onclick = () => { $("menuScrim").classList.remove("open"); if (!rec2) startRec(); };
+$("recClose").onclick = () => { $("recScrim").classList.remove("open"); $("recVideo").pause(); };
+$("recScrim").addEventListener("click", (e) => { if (e.target.id === "recScrim") $("recClose").onclick(); });
 
 /* ============ ループ ============ */
 if (MOCK) {
@@ -1199,6 +1463,7 @@ if (MOCK) {
   appState = cfg.state;
   target = exprFor(cfg.state);
   if (cfg.state === "speaking" && getMode() === "normal") target.mouth = { w: 58, c: 30, o: 22 };
+  withDefaults(target);
   cur = clone(target);
   controls.dataset.vis = cfg.vis;
   $("btnMic").setAttribute("aria-pressed", String(cfg.mic));
@@ -1209,7 +1474,7 @@ if (MOCK) {
     if (q === "3d" || (q !== "2d" && saved === "1")) setView3d(true); }
   setState("ready");
   wakeControls();
-  const loop = (now) => { readLevel(); render(now, false); requestAnimationFrame(loop); };
+  const loop = (now) => { readLevel(); render(now, false); if (rec2) drawRecFrame(now); requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
   if (!store.get("geminiKey")) setTimeout(() => toast("右上の設定から Gemini API キーを入れると話せます", 4200), 900);
 }

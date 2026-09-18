@@ -14,7 +14,7 @@ function spring(k = .12, damp = .82) {
 }
 
 export async function createMascot3D(canvas, url) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true }); // 録画で絵を読み出すため
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -78,6 +78,21 @@ export async function createMascot3D(canvas, url) {
   });
   feet.sort((a, b) => a.mesh.position.x - b.mesh.position.x);
 
+  // 論破王の王冠（crown.glb）。モードに合わせて出し入れする
+  let crown = null;
+  try {
+    const cg = await new GLTFLoader().loadAsync(url.replace(/[^/]*$/, "crown.glb"));
+    crown = cg.scene; crown.userData.base = crown.position.clone();
+    const cms = []; crown.traverse((o) => { if (o.isMesh) cms.push(o); });
+    const gemMat = new THREE.MeshPhysicalMaterial({ color: 0x16c4da, roughness: .25, clearcoat: 1, clearcoatRoughness: .1 });
+    cms.forEach((o) => {
+      const isGem = (o.material?.name || "").toLowerCase().includes("cyan");
+      o.material = isGem ? gemMat : footMat;
+      o.add(new THREE.Mesh(o.geometry, inkMat));
+    });
+    crown.visible = false; root.add(crown);
+  } catch (e) { console.warn("crown.glb を読めませんでした", e); }
+
   // やわらかい床の影
   const sh = document.createElement("canvas"); sh.width = sh.height = 128;
   const sctx = sh.getContext("2d"); const g = sctx.createRadialGradient(64, 64, 4, 64, 64, 64);
@@ -127,10 +142,17 @@ export async function createMascot3D(canvas, url) {
       if (f.eyeFill > .01) { c.globalAlpha = f.eyeFill; c.fillStyle = CYAN; c.fill(p); c.globalAlpha = 1; }
       c.lineWidth = 15; c.stroke(p);
     });
-    rotAt(f.mouthRot, 290, 316, () => {
+    rotAt(f.mouthRot, f.mouthX ?? 290, 316, () => {
       const p = new Path2D(f.mouth);
       c.fillStyle = MOUTH_FILL; c.fill(p); c.lineWidth = 13; c.stroke(p);
     });
+    if (f.beard > .01) { // 論破王の無精ひげ
+      c.save(); c.globalAlpha = f.beard; c.translate(f.beardDx, 0);
+      c.translate(290, 330); c.rotate(f.mouthRot * .5 * Math.PI / 180); c.translate(-290, -330);
+      c.fillStyle = "rgba(23,25,29,.45)"; c.fill(new Path2D(f.beardD));
+      c.strokeStyle = "#17191D"; c.lineWidth = 7; c.stroke(new Path2D(f.goateeD));
+      c.restore();
+    }
     faceTex.needsUpdate = true;
   }
 
@@ -195,6 +217,20 @@ export async function createMascot3D(canvas, url) {
       });
       shadow.position.x = px; shadow.position.z = pz;
       shadow.scale.setScalar(1 - (root.position.y) * .8);
+
+      // 王冠：体の伸び縮み・傾きに合わせて頭の上に乗せる
+      if (crown) {
+        const c = p.face.crown || 0;
+        crown.visible = c > .02;
+        if (crown.visible) {
+          const top = 1.5, b = crown.userData.base;
+          crown.position.set(
+            b.x + (inf[idx.LeanR] - inf[idx.LeanL]) * .15 + Math.sin(t * 2.1 + top * 3.2) * .012 * (1 + uniforms.uWave.value * 2.5),
+            b.y + (inf[idx.Stretch] * .12 - inf[idx.Squash] * .14) * top + inf[idx.Puff] * .03 + (1 - c) * .5,
+            b.z);
+          crown.scale.setScalar(.6 + c * .4);
+        }
+      }
 
       // 本体の画面上の位置（目線の計算に使う）
       proj.set(px, .7, pz).project(camera);
