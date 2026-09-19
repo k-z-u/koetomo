@@ -1,0 +1,9 @@
+name = "koetomo-token"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+# GEMINI_API_KEY は wrangler secret put で登録する（ここには書かない）
+[vars]
+ALLOWED_ORIGINS = "https://k-z-u.github.io,http://localhost:8765"
+MODEL = "gemini-3.8-live"

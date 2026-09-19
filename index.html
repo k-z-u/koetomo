@@ -136,6 +136,45 @@
     opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s;
     z-index: 20; max-width: calc(100vw - 180px); text-align: center;
   }
+  /* ---- 使用量（円形） ---- */
+  .usage-btn {
+    position: relative; width: 44px; height: 44px; margin: 2px 4px 0 0; padding: 0; border: 0; border-radius: 50%;
+    background: #fff; box-shadow: var(--shadow); cursor: pointer; display: grid; place-items: center; flex: none;
+  }
+  .usage-btn svg { position: absolute; inset: 0; width: 44px; height: 44px; transform: rotate(-90deg); }
+  .usage-btn .trk { fill: none; stroke: #EEF1F4; stroke-width: 4.5; }
+  .usage-btn .val { fill: none; stroke: var(--cyan); stroke-width: 4.5; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1), stroke .4s; }
+  .usage-btn span { position: relative; font: 700 12px/1 inherit; font-family: inherit; color: var(--ink); letter-spacing: -.02em; }
+  .usage-btn.low .val { stroke: #F59E0B; } .usage-btn.out .val { stroke: #EF4444; }
+  .usage-btn.own { display: none; }
+  .sheet.usage-sheet { position: relative; width: min(860px, 100%); display: grid; grid-template-columns: auto minmax(300px, 1fr); gap: 40px; align-items: center; padding: 30px 38px; }
+  .usage-close { position: absolute; top: 16px; right: 16px; }
+  .ring-wrap { position: relative; width: min(290px, 62vh); aspect-ratio: 1; }
+  .ring { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+  .ring-track { fill: none; stroke: #EEF1F4; stroke-width: 22; }
+  .ring-val, .ring-glow { fill: none; stroke: url(#ringGrad); stroke-width: 22; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1), stroke .4s; }
+  .ring-glow { opacity: .35; }
+  .ring-knob { fill: #fff; stroke: var(--cyan); stroke-width: 5; filter: drop-shadow(0 2px 4px rgba(10,60,80,.25)); transition: cx 1.1s cubic-bezier(.2,.8,.2,1), cy 1.1s cubic-bezier(.2,.8,.2,1); }
+  .ring-tick { stroke: #D9DEE4; stroke-width: 2; stroke-linecap: round; }
+  .ring-tick.major { stroke: #B9C0C8; stroke-width: 3; }
+  .usage-sheet.low .ring-val, .usage-sheet.low .ring-glow { stroke: #F59E0B; } .usage-sheet.low .ring-knob { stroke: #F59E0B; }
+  .usage-sheet.out .ring-val, .usage-sheet.out .ring-glow { stroke: #EF4444; } .usage-sheet.out .ring-knob { stroke: #EF4444; }
+  .usage-sheet.own .ring-val, .usage-sheet.own .ring-glow { stroke: url(#ringGrad); }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+  .ring-center small { font-size: 13px; color: var(--ink-faint); font-weight: 500; letter-spacing: .06em; }
+  .ring-center b { font-size: clamp(48px, 13vh, 76px); font-weight: 900; line-height: 1.05; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .ring-center b i { font-style: normal; font-size: .32em; font-weight: 700; margin-left: 4px; color: var(--ink-soft); }
+  .ring-center .ring-sub { margin-top: 2px; font-size: 12px; }
+  .usage-side h2 { margin: 0 0 14px; padding-right: 52px; white-space: nowrap; }
+  .stat-row span, .stat-row b { white-space: nowrap; }
+  .usage-actions .btn { white-space: nowrap; padding: 0 16px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 2px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink-soft); }
+  .stat-row b { color: var(--ink); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .usage-note { margin: 14px 0 16px; font-size: 12px; line-height: 1.7; color: var(--ink-faint); }
+  .usage-actions { display: flex; gap: 10px; } .usage-actions .btn { flex: 1; }
+  @media (max-width: 700px) { .sheet.usage-sheet { grid-template-columns: 1fr; justify-items: center; } .usage-side { width: 100%; } }
+  @media (max-height: 460px) { .sheet.usage-sheet { padding: 18px 22px; gap: 22px; } .ring-wrap { width: min(260px, 74vh); } .stat-row { padding: 8px 2px; } .usage-note { margin: 8px 0 10px; } }
+
   /* ---- 切り抜き録画 ---- */
   .rec-btn {
     display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 13px; margin: 4px 6px 0 0;
@@ -147,7 +186,7 @@
   .rec-btn.on { background: #EF4444; border-color: #EF4444; color: #fff; }
   .rec-btn.on .dot { background: #fff; animation: recblink 1s steps(2) infinite; }
   @keyframes recblink { 50% { opacity: 0; } }
-  .rec-sheet { width: min(760px, 100%); display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+  .sheet.rec-sheet { width: min(760px, 100%); display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
   .rec-sheet video { height: min(62vh, 520px); aspect-ratio: 9 / 16; border-radius: 18px; background: #EEF0F3; display: block; }
   .rec-sheet .rec-side { display: flex; flex-direction: column; gap: 10px; }
   .rec-sheet .rec-side p { margin: 0 0 8px; font-size: 13px; line-height: 1.7; color: var(--ink-soft); }
@@ -280,6 +319,10 @@
     <span class="mode-chip" id="modeChip"></span>
     </div>
     <div class="top-actions">
+      <button class="usage-btn" id="btnUsage" aria-label="今日の残り時間">
+        <svg viewBox="0 0 44 44"><circle class="trk" cx="22" cy="22" r="17"/><circle class="val" id="usageMiniArc" cx="22" cy="22" r="17"/></svg>
+        <span id="usageMiniText">120</span>
+      </button>
       <button class="rec-btn" id="btnRec" aria-label="切り抜き録画"><span class="dot"></span><span id="recLabel">切り抜き</span></button>
       <button class="icon-btn" id="btnFull" aria-label="全画面">
         <svg class="fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg>
@@ -360,11 +403,11 @@
 <div class="scrim" id="settingsScrim">
   <div class="sheet" role="dialog" aria-label="設定">
     <h2>設定</h2>
-    <p class="lead">自分の Gemini API キーで、Gemini Live とリアルタイムに話します。</p>
+    <p class="lead">キーは空欄のままで大丈夫。みんなの無料枠で、1日120分まで話せます。自分の Gemini API キーを入れると、無制限に自分の枠で話せます。</p>
     <div class="row">
       <label for="apiKey">API キー</label>
       <div class="key-wrap">
-        <input class="field" id="apiKey" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
+        <input class="field" id="apiKey" type="password" placeholder="空欄なら、みんなの無料枠で話せます" autocomplete="off" spellcheck="false">
         <button type="button" id="toggleKey">表示</button>
       </div>
     </div>
@@ -381,10 +424,48 @@
       <label for="persona">キャラ設定</label>
       <input class="field" id="persona" type="text" placeholder="例：元気でやさしい友だち。名前は「ぷに」">
     </div>
-    <p class="note">キーはこの端末のブラウザ（localStorage）にだけ保存され、ブラウザから Google の Gemini API へ直接送られます。共有端末では使わないでください。キーは <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> で発行できます。</p>
+    <p class="note">みんなの無料枠は Google の無料プランで動いているため、会話の内容が Google のサービス改善に使われることがあります。名前や住所など、個人的なことは話さないでね。<br>入力したキーはこの端末のブラウザ（localStorage）にだけ保存され、ブラウザから Google の Gemini API へ直接送られます。共有端末では使わないでください。キーは <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> で発行できます。</p>
     <div class="sheet-actions">
       <button class="btn ghost" id="settingsCancel">閉じる</button>
       <button class="btn primary" id="settingsSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 使用量 -->
+<div class="scrim" id="usageScrim">
+  <div class="sheet usage-sheet" role="dialog" aria-label="今日の使用量">
+    <button class="menu-close usage-close" id="usageClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5BE3F0"/><stop offset=".55" stop-color="#16C4DA"/><stop offset="1" stop-color="#0A9FB5"/>
+          </linearGradient>
+          <filter id="ringGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+        </defs>
+        <g id="ringTicks"></g>
+        <circle class="ring-track" cx="150" cy="150" r="118"/>
+        <circle class="ring-glow" id="ringGlowArc" cx="150" cy="150" r="118" filter="url(#ringGlow)"/>
+        <circle class="ring-val" id="ringArc" cx="150" cy="150" r="118"/>
+        <circle class="ring-knob" id="ringKnob" r="11"/>
+      </svg>
+      <div class="ring-center">
+        <small id="ringLabel">今日の残り</small>
+        <b><span id="ringMin">120</span><i>分</i></b>
+        <small class="ring-sub" id="ringSub">120分のうち 0分 使用</small>
+      </div>
+    </div>
+    <div class="usage-side">
+      <h2 id="usageTitle">今日の使用量</h2>
+      <div class="stat-row"><span>みんなの無料枠</span><b id="statPool">1日 120分まで</b></div>
+      <div class="stat-row"><span>今日の会話</span><b id="statSessions">0回</b></div>
+      <div class="stat-row"><span>リセットまで</span><b id="statReset">--</b></div>
+      <p class="usage-note" id="usageNote">毎日 0:00 に120分に戻ります。自分の Gemini API キーを入れると、時間の制限なしで話せます。</p>
+      <div class="usage-actions">
+        <button class="btn ghost" id="usageOwnKey">自分のキーを使う</button>
+        <button class="btn primary" id="usageOk">OK</button>
+      </div>
     </div>
   </div>
 </div>
@@ -429,6 +510,7 @@
         <button class="switch-row" id="m3d" role="switch" aria-checked="false"><span class="txt"><b>3D 表示</b><small>立体になってぬるぬる動く</small></span><span class="switch"></span></button>
         <button class="switch-row" id="mFollow" role="switch" aria-checked="false"><span class="txt"><b>ついてくる</b><small>マウスや指をキャラが追いかける</small></span><span class="switch"></span></button>
         <div class="actions">
+          <button class="chip-btn" id="mUsage">今日の残り時間</button>
           <button class="chip-btn" id="mRec">切り抜き録画</button>
           <button class="chip-btn" id="mFull">全画面</button>
           <button class="chip-btn" id="mReset">会話をリセット</button>
@@ -773,6 +855,7 @@ $("toggleKey").onclick = () => {
 $("settingsCancel").onclick = () => $("settingsScrim").classList.remove("open");
 $("settingsSave").onclick = () => {
   store.set("geminiKey", $("apiKey").value.trim());
+  setTimeout(() => usage.render(), 0);
   store.set("model", $("model").value.trim() || DEFAULT_MODEL);
   store.set("voice", $("voice").value);
   store.set("persona", $("persona").value.trim());
@@ -818,7 +901,7 @@ $("btnFull").onclick = () => fsElement() ? exitFull() : enterFull();
 $("rotateFull").onclick = enterFull;
 if (!canFullscreen && isStandalone) $("rotateFull").style.display = "none";
 $("mFull").onclick = () => { $("menuScrim").classList.remove("open"); enterFull(); };
-$("mForget").onclick = () => { store.del("geminiKey"); $("menuScrim").classList.remove("open"); toast("API キーを削除しました"); };
+$("mForget").onclick = () => { store.del("geminiKey"); usage.render(); $("menuScrim").classList.remove("open"); toast("API キーを削除しました"); };
 
 /* ============ Gemini Live ============ */
 const WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
@@ -946,15 +1029,42 @@ function baseSystemPrompt() {
   ].join("\n");
 }
 
-function startSession() {
+// 共有の無料枠：Worker から使い捨ての鍵をもらって、その鍵で直接つなぐ
+const TOKEN_URL = "https://koetomo-token.myais.workers.dev/token";
+const WS_URL_TOKEN = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
+const usingOwnKey = () => !!store.get("geminiKey");
+
+async function startSession() {
   const key = store.get("geminiKey");
   ready = false;
-  const ws = new WebSocket(`${WS_URL}?key=${encodeURIComponent(key)}`);
+  let url, model = store.get("model", DEFAULT_MODEL);
+  const myTurn = Symbol(); session = myTurn;   // 鍵を待っている間に止められたら何もしない
+  if (key) {
+    url = `${WS_URL}?key=${encodeURIComponent(key)}`;
+  } else {
+    if (usage.remainingMs() <= 0) { onLimitReached(); return; }
+    let res;
+    try { res = await fetch(TOKEN_URL, { method: "POST" }); } catch { res = null; }
+    if (session !== myTurn) return;
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) {
+      stopAll(); setState("sad");
+      toast(!res ? "つながりませんでした（ネットを確認してね）" :
+            data.error === "busy" ? "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね" :
+            data.error === "slow_down" ? "ちょっと待って！1分ほどしてからもう一度押してね" :
+            data.error === "not_configured" ? "共有の無料枠はまだ準備中です。設定から自分のキーを入れると話せます" :
+            "つながりませんでした（共有枠）", 5500);
+      return;
+    }
+    url = `${WS_URL_TOKEN}?access_token=${encodeURIComponent(data.token)}`;
+    model = data.model || model;
+  }
+  const ws = new WebSocket(url);
   session = ws;
   ws.onopen = () => {
     ws.send(JSON.stringify({
       setup: {
-        model: "models/" + store.get("model", DEFAULT_MODEL),
+        model: "models/" + model,
         generationConfig: {
           responseModalities: ["AUDIO"],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: store.get("voice", "Aoede") } } },
@@ -982,7 +1092,8 @@ function startSession() {
     stopAll();
     setState("sad");
     const reason = ev.reason || "";
-    toast(/api key|API_KEY|permission|unauth/i.test(reason) ? "API キーが正しくないみたい" :
+    toast(/quota|exhaust|rate|resource/i.test(reason) ? "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね" :
+          /api key|API_KEY|permission|unauth/i.test(reason) ? (usingOwnKey() ? "API キーが正しくないみたい" : "共有枠につながりませんでした。少し待ってね") :
           /model/i.test(reason) ? "モデル名を確認してね：" + reason.slice(0, 80) :
           "つながりませんでした" + (reason ? "：" + reason.slice(0, 80) : ""), 5000);
   };
@@ -1012,6 +1123,7 @@ function onServerMessage(msg) {
   if (DEBUG) dbg(describe(msg));
   if (msg.setupComplete) {
     ready = true; sessionStartedAt = performance.now();
+    if (!usingOwnKey()) { usage.addSession(); usage.render(); }
     setState("listening");
     // 最初の一言を日本語であいさつさせて、会話の言語を日本語に決める
     session?.send(JSON.stringify({
@@ -1213,7 +1325,7 @@ function stopAll() {
 }
 $("btnMic").onclick = async () => {
   if (micWanted) return;
-  if (!store.get("geminiKey")) { toast("まずは設定で Gemini API キーを入れてね"); openSettings(); return; }
+  if (!usingOwnKey() && usage.remainingMs() <= 0) { onLimitReached(); return; }
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
     toast("マイクは https:// か localhost で開いたときだけ使えます", 5000); setState("sad"); return;
   }
@@ -1304,6 +1416,94 @@ if (DEBUG) window.__koe = {
   },
   recFrame() { return rec2?.canvas.toDataURL("image/jpeg", .85); },
 };
+
+/* ============ 使用量（みんなの無料枠：1日120分） ============ */
+const DAILY_MIN = 120;
+const usage = {
+  key() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; },
+  load() {
+    let u = null; try { u = JSON.parse(localStorage.getItem("koetomo.usage")); } catch {}
+    if (!u || u.day !== this.key()) u = { day: this.key(), usedMs: 0, sessions: 0 };
+    return u;
+  },
+  save(u) { try { localStorage.setItem("koetomo.usage", JSON.stringify(u)); } catch {} },
+  usedMs() { return this.load().usedMs; },
+  remainingMs() { return Math.max(0, DAILY_MIN * 60000 - this.usedMs()); },
+  addSession() { const u = this.load(); u.sessions++; this.save(u); },
+  lastTick: 0, warned10: false, warned1: false,
+  // 共有枠でつながっている間だけ時間を数える
+  tick(now) {
+    const active = !usingOwnKey() && ready && micWanted && session;
+    if (!active) { this.lastTick = 0; return; }
+    if (!this.lastTick) { this.lastTick = now; return; }
+    const dt = Math.min(2000, now - this.lastTick);
+    if (dt < 1000) return;
+    this.lastTick = now;
+    const u = this.load(); u.usedMs = Math.min(DAILY_MIN * 60000, u.usedMs + dt); this.save(u);
+    const left = this.remainingMs();
+    if (!this.warned10 && left <= 10 * 60000 && left > 60000) { this.warned10 = true; toast("今日の残りはあと10分だよ"); }
+    if (!this.warned1 && left <= 60000 && left > 0) { this.warned1 = true; toast("あと1分で今日の分はおしまい！"); }
+    if (left <= 0) onLimitReached();
+    this.render();
+  },
+  render() {
+    const own = usingOwnKey(), left = this.remainingMs(), used = this.usedMs();
+    const frac = own ? 1 : left / (DAILY_MIN * 60000);
+    const mins = Math.ceil(left / 60000);
+    const cls = own ? "own" : left <= 0 ? "out" : left <= 10 * 60000 ? "low" : "";
+    // 上のミニリング
+    const C = 2 * Math.PI * 17;
+    $("usageMiniArc").style.strokeDasharray = C; $("usageMiniArc").style.strokeDashoffset = C * (1 - frac);
+    $("usageMiniArc").style.opacity = frac > .002 ? "" : "0";
+    $("usageMiniText").textContent = mins;
+    $("btnUsage").className = "usage-btn " + cls;
+    // 大きいリング
+    const R = 118, CC = 2 * Math.PI * R;
+    for (const id of ["ringArc", "ringGlowArc"]) {
+      $(id).style.strokeDasharray = CC; $(id).style.strokeDashoffset = CC * (1 - frac);
+      $(id).style.opacity = frac > .002 ? "" : "0";   // 0 のときに丸い端だけ残らないように
+    }
+    const a = frac * 2 * Math.PI;
+    $("ringKnob").setAttribute("cx", 150 + R * Math.cos(a)); $("ringKnob").setAttribute("cy", 150 + R * Math.sin(a));
+    $("ringKnob").style.display = frac > .002 ? "" : "none";
+    document.querySelector(".usage-sheet").className = "sheet usage-sheet " + cls;
+    $("ringLabel").textContent = own ? "自分のキー" : left <= 0 ? "今日はおしまい" : "今日の残り";
+    $("ringMin").textContent = own ? "∞" : mins;
+    $("ringMin").nextElementSibling.style.display = own ? "none" : "";
+    $("ringSub").textContent = own ? "時間の制限なし" : `${DAILY_MIN}分のうち ${Math.floor(used / 60000)}分 使用`;
+    $("statPool").textContent = own ? "自分のキーで話し中" : `1日 ${DAILY_MIN}分まで`;
+    $("statSessions").textContent = `${this.load().sessions}回`;
+    const mid = new Date(); mid.setHours(24, 0, 0, 0);
+    const r = mid - Date.now(); $("statReset").textContent = `${Math.floor(r / 3600000)}時間${Math.floor(r / 60000) % 60}分`;
+    $("usageTitle").textContent = left <= 0 && !own ? "今日はここまで！" : "今日の使用量";
+    $("usageNote").textContent = own ? "自分の Gemini API キーで話しているので、この時間の制限はかかりません。" :
+      left <= 0 ? "また明日話そう！毎日 0:00 に120分に戻ります。すぐ話したいときは、自分の Gemini API キーを入れると続けられます。" :
+      "毎日 0:00 に120分に戻ります。自分の Gemini API キーを入れると、時間の制限なしで話せます。";
+    $("usageOwnKey").style.display = own ? "none" : "";
+  },
+};
+// 目盛り（10分ごと、30分ごとに太く）
+(function drawTicks() {
+  const g = $("ringTicks"); let html = "";
+  for (let i = 0; i < DAILY_MIN / 5; i++) {
+    const a = i / (DAILY_MIN / 5) * 2 * Math.PI, major = i % 6 === 0, r1 = 142, r2 = major ? 152 : 148;
+    if (i % 2 && !major) continue;
+    html += `<line class="ring-tick${major ? " major" : ""}" x1="${150 + r1 * Math.cos(a)}" y1="${150 + r1 * Math.sin(a)}" x2="${150 + r2 * Math.cos(a)}" y2="${150 + r2 * Math.sin(a)}"/>`;
+  }
+  g.innerHTML = html;
+})();
+function openUsage() { usage.render(); $("usageScrim").classList.add("open"); }
+function onLimitReached() {
+  stopAll(); setState("away");
+  openUsage();
+}
+$("btnUsage").onclick = openUsage;
+$("mUsage").onclick = () => { $("menuScrim").classList.remove("open"); openUsage(); };
+$("usageClose").onclick = $("usageOk").onclick = () => $("usageScrim").classList.remove("open");
+$("usageOwnKey").onclick = () => { $("usageScrim").classList.remove("open"); openSettings(); };
+$("usageScrim").addEventListener("click", (e) => { if (e.target.id === "usageScrim") $("usageScrim").classList.remove("open"); });
+setInterval(() => usage.tick(performance.now()), 1000);
+setInterval(() => usage.render(), 30000);
 
 /* ============ 切り抜き録画（縦型 1080×1920・字幕つき） ============ */
 const captions = { user: "", userAt: 0, userDone: false, aiChunks: [], aiDone: false, aiShown: "", aiAt: 0 };
@@ -1524,7 +1724,7 @@ if (MOCK) {
   wakeControls();
   const loop = (now) => { readLevel(); render(now, false); if (rec2) drawRecFrame(now); requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
-  if (!store.get("geminiKey")) setTimeout(() => toast("右上の設定から Gemini API キーを入れると話せます", 4200), 900);
+  usage.render();
 }
 </script>
 </body>
