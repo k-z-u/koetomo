@@ -138,14 +138,17 @@
   }
   /* ---- 使用量（円形） ---- */
   .usage-btn {
-    position: relative; width: 44px; height: 44px; margin: 2px 4px 0 0; padding: 0; border: 0; border-radius: 50%;
-    background: #fff; box-shadow: var(--shadow); cursor: pointer; display: grid; place-items: center; flex: none;
+    display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 6px; margin: 4px 6px 0 0;
+    border: 1.5px solid var(--line); border-radius: 999px; background: #fff; box-shadow: var(--shadow); cursor: pointer; font-family: inherit; color: var(--ink);
   }
-  .usage-btn svg { position: absolute; inset: 0; width: 44px; height: 44px; transform: rotate(-90deg); }
-  .usage-btn .trk { fill: none; stroke: #EEF1F4; stroke-width: 4.5; }
-  .usage-btn .val { fill: none; stroke: var(--cyan); stroke-width: 4.5; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1), stroke .4s; }
-  .usage-btn span { position: relative; font: 700 12px/1 inherit; font-family: inherit; color: var(--ink); letter-spacing: -.02em; }
-  .usage-btn.low .val { stroke: #F59E0B; } .usage-btn.out .val { stroke: #EF4444; }
+  .usage-btn .uring { width: 30px; height: 30px; }
+  .usage-btn svg { width: 30px; height: 30px; transform: rotate(-90deg); display: block; }
+  .usage-btn .trk { fill: none; stroke: #EEF1F4; stroke-width: 6; }
+  .usage-btn .val { fill: none; stroke: var(--cyan); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1), stroke .4s; }
+  .usage-btn .utxt { font-size: 13px; font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
+  .usage-btn .utxt b { font-size: 16px; font-weight: 900; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .usage-btn.low { border-color: #FCD34D; } .usage-btn.low .val { stroke: #F59E0B; }
+  .usage-btn.out { border-color: #FCA5A5; background: #FEF2F2; } .usage-btn.out .val { stroke: #EF4444; }
   .usage-btn.own { display: none; }
   .sheet.usage-sheet { position: relative; width: min(860px, 100%); display: grid; grid-template-columns: auto minmax(300px, 1fr); gap: 40px; align-items: center; padding: 30px 38px; }
   .usage-close { position: absolute; top: 16px; right: 16px; }
@@ -240,54 +243,72 @@
   }
   .btn.ghost { background: #F2F3F5; color: var(--ink-soft); }
   .btn.primary { background: var(--ink); color: #fff; }
-  /* ---- メニュー（モード選び＋表示設定） ---- */
-  .menu { width: min(820px, 100%); padding: 22px 24px 20px; }
+  /* ---- メニュー ---- */
+  .sheet.menu { width: min(860px, 100%); padding: 22px 26px 22px; }
   .menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .menu-head h2 { margin: 0; }
-  .menu-close { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #F2F3F5; color: var(--ink-soft); cursor: pointer; display: grid; place-items: center; }
-  .menu-close svg { width: 18px; height: 18px; }
-  .menu-body { display: grid; grid-template-columns: 1.55fr 1fr; gap: 22px; }
-  .sec-title { font-size: 12px; font-weight: 500; color: var(--ink-faint); letter-spacing: .06em; margin: 0 0 10px 2px; }
-  .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .menu-head h2 { margin: 0; font-size: 20px; }
+  .menu-close { width: 38px; height: 38px; border: 0; border-radius: 50%; background: #F2F3F5; color: var(--ink-soft); cursor: pointer; display: grid; place-items: center; flex: none; }
+  .menu-close svg { width: 16px; height: 16px; }
+
+  /* 使用量バナー（いちばん上で一目でわかる） */
+  .quota {
+    display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 16px 12px 12px; margin-bottom: 18px;
+    border: 0; border-radius: 18px; background: #F4F6F8; cursor: pointer; text-align: left; font-family: inherit; color: var(--ink);
+  }
+  .quota .qring { position: relative; width: 52px; height: 52px; flex: none; }
+  .quota .qring svg { width: 52px; height: 52px; transform: rotate(-90deg); }
+  .quota .qring .trk { fill: none; stroke: #E3E7EB; stroke-width: 6; }
+  .quota .qring .val { fill: none; stroke: var(--cyan); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+  .quota .qtxt { flex: 1; min-width: 0; }
+  .quota .qtxt b { display: block; font-size: 17px; font-weight: 700; }
+  .quota .qtxt b em { font-style: normal; font-size: 24px; font-weight: 900; margin: 0 2px; font-variant-numeric: tabular-nums; }
+  .quota .qtxt small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-faint); }
+  .quota .qbar { width: 180px; height: 8px; border-radius: 99px; background: #E3E7EB; overflow: hidden; flex: none; }
+  .quota .qbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #5BE3F0, #16C4DA); transition: width .8s cubic-bezier(.2,.8,.2,1); }
+  .quota .qmore { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+  .quota.low .val { stroke: #F59E0B; } .quota.low .qbar i { background: #F59E0B; }
+  .quota.out { background: #FEF2F2; } .quota.out .val { stroke: #EF4444; } .quota.out .qbar i { background: #EF4444; }
+  .quota.own .qbar { display: none; }
+
+  .menu-body { display: grid; grid-template-columns: 1fr 250px; gap: 26px; align-items: start; }
+  .sec-title { font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .08em; margin: 0 0 10px 2px; }
+  .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .mode-card {
-    display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
-    padding: 10px 8px 12px; border-radius: 18px; border: 1.5px solid var(--line); background: #fff;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 10px;
+    border-radius: 16px; border: 1.5px solid transparent; background: #F7F8FA;
     font-family: inherit; color: var(--ink); cursor: pointer; transition: border-color .2s, background .2s, transform .15s;
   }
-  .mode-card:hover { background: #FAFBFC; }
-  .mode-card:active { transform: scale(.97); }
-  .mode-card svg { width: 64px; height: 48px; }
-  .mode-card b { font-size: 14px; font-weight: 700; }
-  .mode-card small { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
+  .mode-card:hover { background: #F0F2F5; }
+  .mode-card:active { transform: scale(.96); }
+  .mode-card svg { width: 58px; height: 42px; }
+  .mode-card b { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .mode-card small { display: none; }
   .mode-card[aria-checked="true"] { border-color: var(--cyan); background: var(--cyan-tint); }
-  .mode-card[aria-checked="true"] small { color: #0A8FA2; }
-  .switch-row {
-    display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; margin-bottom: 8px;
-    border: 1.5px solid var(--line); border-radius: 16px; background: #fff; cursor: pointer; text-align: left;
-    font-family: inherit; color: var(--ink);
-  }
-  .switch-row .txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-  .switch-row b { font-size: 14px; font-weight: 700; }
-  .switch-row small { font-size: 11px; color: var(--ink-faint); }
-  .switch { width: 44px; height: 26px; border-radius: 999px; background: #E3E6EA; position: relative; flex: none; transition: background .2s; }
-  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.18); transition: transform .2s; }
-  .switch-row[aria-checked="true"] { border-color: var(--cyan); }
-  .switch-row[aria-checked="true"] .switch { background: var(--cyan); }
-  .switch-row[aria-checked="true"] .switch::after { transform: translateX(18px); }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-  .chip-btn { height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: #F2F3F5; color: var(--ink-soft); font: 500 13px/1 inherit; font-family: inherit; cursor: pointer; }
-  .chip-btn:hover { background: #E9EBEE; }
-  .chip-btn.danger { color: #C2410C; }
-  @media (max-width: 720px) {
-    .menu-body { grid-template-columns: 1fr; }
-  }
+  .mode-desc { margin: 12px 2px 0; font-size: 13px; color: var(--ink-soft); min-height: 1.5em; }
+  .mode-desc b { color: #0A8FA2; margin-right: 6px; }
+
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer; text-align: left; font-family: inherit; color: var(--ink); }
+  .opt .txt { flex: 1; min-width: 0; }
+  .opt b { display: block; font-size: 14px; font-weight: 700; }
+  .opt small { display: block; font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
+  .opt .ico { width: 20px; height: 20px; flex: none; color: var(--ink-soft); }
+  .opt .chev { color: var(--ink-faint); font-size: 18px; line-height: 1; }
+  .switch { width: 42px; height: 25px; border-radius: 999px; background: #E3E6EA; position: relative; flex: none; transition: background .2s; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.18); transition: transform .2s; }
+  .opt[aria-checked="true"] .switch { background: var(--cyan); }
+  .opt[aria-checked="true"] .switch::after { transform: translateX(17px); }
+  .opt.danger b { color: #C2410C; font-weight: 500; }
+  .opt:last-child { border-bottom: 0; }
+  .opt[hidden], .usage-btn[hidden], .btn[hidden] { display: none; }
+  @media (max-width: 720px) { .menu-body { grid-template-columns: 1fr; } .quota .qbar { display: none; } }
   @media (max-height: 460px) {
-    .menu { padding: 14px 16px; }
-    .menu-head { margin-bottom: 8px; }
-    .mode-card { padding: 6px 6px 8px; gap: 2px; }
-    .mode-card svg { width: 48px; height: 34px; }
-    .mode-card small { display: none; }
-    .switch-row { padding: 9px 12px; }
+    .sheet.menu { padding: 12px 16px 14px; }
+    .menu-head { margin-bottom: 8px; } .menu-head h2 { font-size: 17px; }
+    .quota { padding: 8px 12px 8px 8px; margin-bottom: 10px; } .quota .qring, .quota .qring svg { width: 42px; height: 42px; }
+    .quota .qtxt b em { font-size: 20px; }
+    .mode-card { padding: 6px 2px; gap: 3px; } .mode-card svg { width: 44px; height: 32px; }
+    .mode-desc { margin-top: 8px; }
+    .opt { padding: 8px 2px; } .opt small { display: none; }
   }
 
   /* portrait hint */
@@ -320,8 +341,8 @@
     </div>
     <div class="top-actions">
       <button class="usage-btn" id="btnUsage" aria-label="今日の残り時間">
-        <svg viewBox="0 0 44 44"><circle class="trk" cx="22" cy="22" r="17"/><circle class="val" id="usageMiniArc" cx="22" cy="22" r="17"/></svg>
-        <span id="usageMiniText">120</span>
+        <span class="uring"><svg viewBox="0 0 44 44"><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" id="usageMiniArc" cx="22" cy="22" r="16"/></svg></span>
+        <span class="utxt">残り <b id="usageMiniText">120</b>分</span>
       </button>
       <button class="rec-btn" id="btnRec" aria-label="切り抜き録画"><span class="dot"></span><span id="recLabel">切り抜き</span></button>
       <button class="icon-btn" id="btnFull" aria-label="全画面">
@@ -489,33 +510,37 @@
   <div class="sheet menu" role="dialog" aria-label="メニュー">
     <div class="menu-head">
       <h2>メニュー</h2>
-      <button class="menu-close" id="menuClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="menu-close" id="menuClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
+    <button class="quota" id="mUsage">
+      <span class="qring"><svg viewBox="0 0 52 52"><circle class="trk" cx="26" cy="26" r="21"/><circle class="val" id="qArc" cx="26" cy="26" r="21"/></svg></span>
+      <span class="qtxt"><b id="qMain">今日の残り<em>120</em>分</b><small id="qSub">1日120分まで話せます・毎日 0:00 にリセット</small></span>
+      <span class="qbar"><i id="qBar" style="width:100%"></i></span>
+      <span class="qmore">くわしく ›</span>
+    </button>
     <div class="menu-body">
       <section>
-        <p class="sec-title">キャラのモード</p>
+        <p class="sec-title">キャラ</p>
         <div class="modes" role="radiogroup" aria-label="キャラのモード">
-          <button class="mode-card" data-mode="normal" role="radio"><svg data-face="normal"></svg><b>ふつう</b><small>やさしい話し相手</small></button>
-          <button class="mode-card" data-mode="claimer" role="radio"><svg data-face="claimer"></svg><b>クレーマー</b><small>キレて本社に連絡</small></button>
-          <button class="mode-card" data-mode="overprotect" role="radio"><svg data-face="overprotect"></svg><b>過保護</b><small>心配しすぎて各所に報告</small></button>
-          <button class="mode-card" data-mode="reisho" role="radio"><svg data-face="reisho"></svg><b>冷笑</b><small>どもりながら半笑い</small></button>
-          <button class="mode-card" data-mode="ishiki" role="radio"><svg data-face="ishiki"></svg><b>意識高い系</b><small>何でもビジネス用語</small></button>
-          <button class="mode-card" data-mode="inbou" role="radio"><svg data-face="inbou"></svg><b>陰謀論</b><small>何でも黒幕のしわざじゃ</small></button>
-          <button class="mode-card" data-mode="dopa" role="radio"><svg data-face="dopa"></svg><b>ドパガキ</b><small>3秒で飽きる刺激中毒</small></button>
-          <button class="mode-card" data-mode="ronpa" role="radio"><svg data-face="ronpa"></svg><b>論破王</b><small>それってあなたの感想ですよね？</small></button>
+          <button class="mode-card" data-mode="normal" data-desc="やさしい話し相手" role="radio"><svg data-face="normal"></svg><b>ふつう</b></button>
+          <button class="mode-card" data-mode="claimer" data-desc="キレて本社に連絡" role="radio"><svg data-face="claimer"></svg><b>クレーマー</b></button>
+          <button class="mode-card" data-mode="overprotect" data-desc="心配しすぎて各所に報告" role="radio"><svg data-face="overprotect"></svg><b>過保護</b></button>
+          <button class="mode-card" data-mode="reisho" data-desc="どもりながら半笑い" role="radio"><svg data-face="reisho"></svg><b>冷笑</b></button>
+          <button class="mode-card" data-mode="ishiki" data-desc="何でもビジネス用語" role="radio"><svg data-face="ishiki"></svg><b>意識高い系</b></button>
+          <button class="mode-card" data-mode="inbou" data-desc="何でも黒幕のしわざじゃ" role="radio"><svg data-face="inbou"></svg><b>陰謀論</b></button>
+          <button class="mode-card" data-mode="dopa" data-desc="3秒で飽きる刺激中毒" role="radio"><svg data-face="dopa"></svg><b>ドパガキ</b></button>
+          <button class="mode-card" data-mode="ronpa" data-desc="それってあなたの感想ですよね？" role="radio"><svg data-face="ronpa"></svg><b>論破王</b></button>
         </div>
+        <p class="mode-desc" id="modeDesc"></p>
       </section>
       <section>
-        <p class="sec-title">見た目</p>
-        <button class="switch-row" id="m3d" role="switch" aria-checked="false"><span class="txt"><b>3D 表示</b><small>立体になってぬるぬる動く</small></span><span class="switch"></span></button>
-        <button class="switch-row" id="mFollow" role="switch" aria-checked="false"><span class="txt"><b>ついてくる</b><small>マウスや指をキャラが追いかける</small></span><span class="switch"></span></button>
-        <div class="actions">
-          <button class="chip-btn" id="mUsage">今日の残り時間</button>
-          <button class="chip-btn" id="mRec">切り抜き録画</button>
-          <button class="chip-btn" id="mFull">全画面</button>
-          <button class="chip-btn" id="mReset">会話をリセット</button>
-          <button class="chip-btn danger" id="mForget">API キーを削除</button>
-        </div>
+        <p class="sec-title">見た目と機能</p>
+        <button class="opt" id="m3d" role="switch" aria-checked="false"><span class="txt"><b>3D 表示</b><small>立体でぬるぬる動く</small></span><span class="switch"></span></button>
+        <button class="opt" id="mFollow" role="switch" aria-checked="false"><span class="txt"><b>ついてくる</b><small>マウスや指を追いかける</small></span><span class="switch"></span></button>
+        <button class="opt" id="mRec"><span class="txt"><b>切り抜き録画</b><small>字幕つき縦型動画を作る</small></span><span class="chev">›</span></button>
+        <button class="opt" id="mFull"><span class="txt"><b>全画面</b></span><span class="chev">›</span></button>
+        <button class="opt" id="mReset"><span class="txt"><b>会話をリセット</b></span><span class="chev">›</span></button>
+        <button class="opt danger" id="mForget"><span class="txt"><b>API キーを削除</b></span></button>
       </section>
     </div>
   </div>
@@ -1390,6 +1415,8 @@ function applyMode() {
   chip.textContent = MODE_LABEL[mode] + "モード";
   chip.classList.toggle("on", mode !== "normal");
   document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+  const card = document.querySelector(`[data-mode="${mode}"]`);
+  $("modeDesc").innerHTML = card ? `<b>${MODE_LABEL[mode]}</b>${card.dataset.desc}` : "";
 }
 document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
   store.set("mode", b.dataset.mode);
@@ -1452,11 +1479,21 @@ const usage = {
     const mins = Math.ceil(left / 60000);
     const cls = own ? "own" : left <= 0 ? "out" : left <= 10 * 60000 ? "low" : "";
     // 上のミニリング
-    const C = 2 * Math.PI * 17;
+    const C = 2 * Math.PI * 16;
     $("usageMiniArc").style.strokeDasharray = C; $("usageMiniArc").style.strokeDashoffset = C * (1 - frac);
     $("usageMiniArc").style.opacity = frac > .002 ? "" : "0";
     $("usageMiniText").textContent = mins;
     $("btnUsage").className = "usage-btn " + cls;
+    $("btnUsage").hidden = own;
+    // メニューの使用量バナー
+    const QC = 2 * Math.PI * 21;
+    $("qArc").style.strokeDasharray = QC; $("qArc").style.strokeDashoffset = QC * (1 - frac);
+    $("qArc").style.opacity = frac > .002 ? "" : "0";
+    $("qBar").style.width = (frac * 100).toFixed(1) + "%";
+    $("mUsage").className = "quota " + cls;
+    $("qMain").innerHTML = own ? "自分のキーで話し中<em>∞</em>" : left <= 0 ? "今日はここまで！<em>0</em>分" : `今日の残り<em>${mins}</em>分`;
+    $("qSub").textContent = own ? "時間の制限なし" : `1日${DAILY_MIN}分まで話せます・毎日 0:00 にリセット`;
+    $("mForget").hidden = !own;
     // 大きいリング
     const R = 118, CC = 2 * Math.PI * R;
     for (const id of ["ringArc", "ringGlowArc"]) {
