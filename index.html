@@ -729,6 +729,13 @@
       <select class="field" id="voice"></select>
     </div>
     <div class="row">
+      <label for="cosmetic">コスメティック</label>
+      <select class="field" id="cosmetic">
+        <option value="">なし</option>
+        <option value="ebifurai">えびふらい（3D のあたまにのる）</option>
+      </select>
+    </div>
+    <div class="row">
       <label for="persona">キャラ設定</label>
       <input class="field" id="persona" type="text" placeholder="例：元気でやさしい友だち。名前は「ぷに」">
     </div>
@@ -1459,6 +1466,7 @@ function faceShapes(ex, blinkV = 1, lookX = 0, lookY = 0, mouth = ex.mouth) {
     beard: Math.max(0, Math.min(1, ex.beard)), beardDx: mcx - 290,
     blush: Math.max(0, Math.min(1, ex.blush)),
     crown: Math.max(0, Math.min(1, ex.crown)),
+    ebi: Math.max(0, Math.min(1, ex.ebi || 0)),
     glasses: Math.max(0, Math.min(1, ex.glasses || 0)), glassesDx: ex.eye.lx,
   };
 }
@@ -1511,6 +1519,7 @@ function render(now, instant) {
   for (const part of ["eye", "mouth"]) for (const key in target[part]) cur[part][key] = lerp(cur[part][key], target[part][key], k);
   cur.spark = lerp(cur.spark, target.spark, k * .6);
   cur.beard = lerp(cur.beard, target.beard, k); cur.crown = lerp(cur.crown, target.crown, k);
+  cur.ebi = lerp(cur.ebi || 0, cosmetic === "ebifurai" ? 1 : 0, k);   // コスメティック（設定でえらんだもの）
   cur.glasses = lerp(cur.glasses || 0, target.glasses || 0, k);
   cur.tilt = lerp(cur.tilt, target.tilt, k * .5);
 
@@ -1600,6 +1609,7 @@ function render(now, instant) {
 
 /* ============ 3D 表示 ============ */
 let mascot3d = null, view3d = false, loading3d = null;
+let cosmetic = ""; try { cosmetic = localStorage.getItem("koetomo.cosmetic") || ""; } catch {}
 async function setView3d(on) {
   view3d = on;
   try { localStorage.setItem("koetomo.view3d", on ? "1" : "0"); } catch {}
@@ -1693,6 +1703,7 @@ function openSettings() {
   $("apiKey").value = store.get("geminiKey");
   $("model").value = store.get("model", DEFAULT_MODEL);
   $("voice").value = store.get("voice", "Aoede");
+  $("cosmetic").value = store.get("cosmetic") || "";
   $("persona").value = store.get("persona");
   $("personaHint").hidden = getMode() !== "custom";
   $("settingsScrim").classList.add("open");
@@ -1704,6 +1715,12 @@ $("toggleKey").onclick = () => {
 };
 $("settingsCancel").onclick = () => $("settingsScrim").classList.remove("open");
 $("settingsSave").onclick = () => {
+  const cos = $("cosmetic").value;
+  if (cos !== (store.get("cosmetic") || "")) {
+    store.set("cosmetic", cos);
+    cosmetic = cos;
+    if (cos === "ebifurai" && !view3d) setView3d(true);   // 3D でしか見えないので、えらんだら 3D をオンにする
+  }
   store.set("geminiKey", $("apiKey").value.trim());
   setTimeout(() => usage.render(), 0);
   store.set("model", $("model").value.trim() || DEFAULT_MODEL);

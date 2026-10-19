@@ -102,6 +102,20 @@ export async function createMascot3D(canvas, url, crownUrl = url.replace(/[^/]*$
     crown.visible = false; root.add(crown);
   } catch (e) { console.warn("crown.glb を読めませんでした", e); }
 
+  // コスメティック：えびふらい（ebifurai.glb）。設定でえらんだときだけ読み込む
+  let ebi = null, ebiStarted = false;
+  async function loadEbi() {
+    try {
+      const eg = await new GLTFLoader().loadAsync(url.replace(/[^/]*$/, "ebifurai.glb"));
+      ebi = eg.scene; ebi.userData.base = ebi.position.clone();
+      const ems = []; ebi.traverse((o) => { if (o.isMesh) ems.push(o); });
+      const mats = new Set();
+      ems.forEach((o) => { mats.add(o.material); o.add(new THREE.Mesh(o.geometry, inkMat)); });
+      for (const m of mats) patch(m, false);   // 体と同じ、ぷるんの揺れを効かせる
+      ebi.visible = false; root.add(ebi);
+    } catch (err) { console.warn("ebifurai.glb を読めませんでした:", (err && err.message) || err); ebi = null; }
+  }
+
   // やわらかい床の影
   const sh = document.createElement("canvas"); sh.width = sh.height = 128;
   const sctx = sh.getContext("2d"); const g = sctx.createRadialGradient(64, 64, 4, 64, 64, 64);
@@ -247,9 +261,25 @@ export async function createMascot3D(canvas, url, crownUrl = url.replace(/[^/]*$
       shadow.position.x = px; shadow.position.z = pz;
       shadow.scale.setScalar(1 - (root.position.y) * .8);
 
-      // 王冠：体の伸び縮み・傾きに合わせて頭の上に乗せる
+      // コスメティック：えびふらい（設定でえらんだときだけ。届くまでは何も出ない）
+      const ebiOn = (p.face.ebi || 0) > .02;
+      if (ebiOn && !ebi && !ebiStarted) { ebiStarted = true; loadEbi(); }
+      if (ebi) {
+        const c = p.face.ebi || 0;
+        ebi.visible = c > .02;
+        if (ebi.visible) {
+          const top = 1.5, b = ebi.userData.base;
+          ebi.position.set(
+            b.x + (inf[idx.LeanR] - inf[idx.LeanL]) * .15 + Math.sin(t * 2.1 + top * 3.2) * .012 * (1 + uniforms.uWave.value * 2.5),
+            b.y + (inf[idx.Stretch] * .12 - inf[idx.Squash] * .14) * top + inf[idx.Puff] * .03 + (1 - c) * .5,
+            b.z);
+          ebi.scale.setScalar(.6 + c * .4);
+        }
+      }
+
+      // 王冠：体の伸び縮み・傾きに合わせて頭の上に乗せる（コスメティックをのせているときは出さない）
       if (crown) {
-        const c = p.face.crown || 0;
+        const c = ebiOn ? 0 : (p.face.crown || 0);
         crown.visible = c > .02;
         if (crown.visible) {
           const top = 1.5, b = crown.userData.base;
