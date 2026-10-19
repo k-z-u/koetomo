@@ -1,0 +1,271 @@
+// こえとも 3D 表示（Blender で作った 3d/koetomo.glb を three.js で動かす）
+// 顔は 2D 版と同じパス文字列を Canvas に描き、体のテクスチャとして貼る。
+// 体のぷるぷる・ぬるっとした動きは、シェイプキー（Squash / Stretch / LeanL / LeanR / Puff）と
+// 頂点シェーダーの揺らぎで作る。
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+// 色は「じぶんのキャラ」で変えられるように、初期値つきの入れ物にしておく（setLook で差し替え）
+const DEFAULT_COLORS = { body: "#FBFCFD", ink: "#17191D", eye: "#16C4DA", mouth: "#DDF6FA" };
+
+// #rrggbb を半透明にする（ひげの薄い色などに使う）
+function withAlpha(hex, a) {
+  const h = (hex || "#000000").replace("#", "");
+  const n = parseInt(h.length === 3 ? h.replace(/./g, (c) => c + c) : h, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+// ばね（行き過ぎて戻る＝ぷるんとした動き）
+function spring(k = .12, damp = .82) {
+  return { x: 0, v: 0, step(target) { this.v = (this.v + (target - this.x) * k) * damp; this.x += this.v; return this.x; } };
+}
+
+export async function createMascot3D(canvas, url, crownUrl = url.replace(/[^/]*$/, "crown.glb"), colors = {}) {
+  const pal = { ...DEFAULT_COLORS, ...colors };
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true }); // 録画で絵を読み出すため
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.0;
+
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+  scene.environmentIntensity = .55;
+
+  const camera = new THREE.PerspectiveCamera(26, 1, .1, 50);
+  const lookAt = new THREE.Vector3(0, .5, 0);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xdfe4ea, 1.1));
+  const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(-2.5, 4, 4.5); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xe8fbff, .9); rim.position.set(3, 2.5, -3); scene.add(rim);
+
+  // 顔テクスチャ（SVG の座標 580×460 を 2 倍で描く）
+  const faceCanvas = document.createElement("canvas");
+  faceCanvas.width = 1160; faceCanvas.height = 920;
+  const fctx = faceCanvas.getContext("2d");
+  const faceTex = new THREE.CanvasTexture(faceCanvas);
+  faceTex.flipY = false; faceTex.colorSpace = THREE.SRGBColorSpace;
+  faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+  // ぬるぬる揺れる頂点シェーダー
+  const uniforms = { uTime: { value: 0 }, uWave: { value: 0 }, uJelly: { value: 0 } };
+  function patch(mat, outline) {
+    mat.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, uniforms);
+      sh.vertexShader = "uniform float uTime; uniform float uWave; uniform float uJelly;\n" +
+        sh.vertexShader.replace("#include <project_vertex>", `
+          float hgt = clamp((transformed.y + 0.1) / 1.7, 0.0, 1.0);
+          float amp = 1.0 + uWave * 2.5;
+          transformed.x += sin(uTime * 2.1 + transformed.y * 3.2) * 0.012 * hgt * amp;
+          transformed.z += sin(uTime * 1.6 + transformed.x * 2.6) * 0.010 * hgt * amp;
+          transformed.y += sin(uTime * 2.7 + transformed.x * 4.0) * 0.006 * hgt * uWave;
+          transformed.x += uJelly * 0.10 * hgt * hgt;
+          ${outline ? "transformed += normalize(normal) * 0.024;" : ""}
+          #include <project_vertex>`);
+    };
+    return mat;
+  }
+  const skinMat = patch(new THREE.MeshPhysicalMaterial({
+    map: faceTex, roughness: .34, clearcoat: .85, clearcoatRoughness: .22, sheen: .4, sheenColor: new THREE.Color(0xdff8fc),
+  }), false);
+  const footMat = patch(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(pal.body), roughness: .38, clearcoat: .7, clearcoatRoughness: .3 }), false);
+  const inkMat = patch(new THREE.MeshBasicMaterial({ color: new THREE.Color(pal.ink), side: THREE.BackSide }), true);
+
+  const gltf = await new GLTFLoader().loadAsync(url);
+  const root = new THREE.Group(); root.add(gltf.scene); scene.add(root);
+  let body = null; const feet = [];
+  const meshes = []; gltf.scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  meshes.forEach((o) => {
+    const isBody = !!o.morphTargetDictionary;
+    o.material = isBody ? skinMat : footMat;
+    const outline = new THREE.Mesh(o.geometry, inkMat);
+    outline.morphTargetInfluences = o.morphTargetInfluences;
+    outline.morphTargetDictionary = o.morphTargetDictionary;
+    o.add(outline);
+    if (isBody) body = o; else feet.push({ mesh: o, y: o.position.y });
+  });
+  feet.sort((a, b) => a.mesh.position.x - b.mesh.position.x);
+
+  // 論破王の王冠（crown.glb）。モードに合わせて出し入れする
+  let crown = null, gemMat = null;
+  try {
+    const cg = await new GLTFLoader().loadAsync(crownUrl);
+    crown = cg.scene; crown.userData.base = crown.position.clone();
+    const cms = []; crown.traverse((o) => { if (o.isMesh) cms.push(o); });
+    gemMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(pal.eye), roughness: .25, clearcoat: 1, clearcoatRoughness: .1 });
+    cms.forEach((o) => {
+      const isGem = (o.material?.name || "").toLowerCase().includes("cyan");
+      o.material = isGem ? gemMat : footMat;
+      o.add(new THREE.Mesh(o.geometry, inkMat));
+    });
+    crown.visible = false; root.add(crown);
+  } catch (e) { console.warn("crown.glb を読めませんでした", e); }
+
+  // やわらかい床の影
+  const sh = document.createElement("canvas"); sh.width = sh.height = 128;
+  const sctx = sh.getContext("2d"); const g = sctx.createRadialGradient(64, 64, 4, 64, 64, 64);
+  g.addColorStop(0, "rgba(40,50,70,.22)"); g.addColorStop(1, "rgba(40,50,70,0)");
+  sctx.fillStyle = g; sctx.fillRect(0, 0, 128, 128);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent: true, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = -.37; scene.add(shadow);
+
+  // ついてくる用
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), proj = new THREE.Vector3();
+  const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const screenPos = { x: 0, y: 0 };
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    // 横長画面いっぱいでもキャラが程よい大きさになる距離
+    const fitH = 3.5, fitW = 5.4;
+    const dist = Math.max(fitH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))), fitW / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
+    camera.userData.dist = dist;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(canvas); resize();
+
+  const sq = spring(.10, .80), lean = spring(.06, .86), jelly = spring(.09, .78), hop = spring(.14, .74);
+  const yaw = spring(.05, .86);
+  const posX = spring(.035, .86), posZ = spring(.035, .86);
+  let lastTalk = 0;
+  const idx = body.morphTargetDictionary;
+
+  function drawFace(f) {
+    const c = fctx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = pal.body; c.fillRect(0, 0, faceCanvas.width, faceCanvas.height);
+    c.setTransform(2, 0, 0, 2, 0, 0);
+    c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = pal.eye;
+    const rotAt = (deg, x, y, fn) => { c.save(); c.translate(x, y); c.rotate(deg * Math.PI / 180); c.translate(-x, -y); fn(); c.restore(); };
+    if (f.browOpacity > .01) {
+      c.globalAlpha = f.browOpacity; c.lineWidth = 12;
+      for (const b of f.brows) rotAt(b.rot, b.x, b.y, () => c.stroke(new Path2D(b.d)));
+      c.globalAlpha = 1;
+    }
+    for (const e of f.eyes) rotAt(e.rot, e.x, e.y ?? 225, () => {
+      const p = new Path2D(e.d);
+      if (f.eyeFill > .01) { c.globalAlpha = f.eyeFill; c.fillStyle = pal.eye; c.fill(p); c.globalAlpha = 1; }
+      c.lineWidth = 15; c.stroke(p);
+    });
+    rotAt(f.mouthRot, f.mouthX ?? 290, 316, () => {
+      const p = new Path2D(f.mouth);
+      c.fillStyle = pal.mouth; c.fill(p); c.lineWidth = 13; c.stroke(p);
+    });
+    if (f.blush > .01) { // ほっぺ
+      c.save(); c.globalAlpha = f.blush * .34; c.fillStyle = pal.eye;
+      for (const [bx, by] of [[152, 292], [428, 292]]) { c.beginPath(); c.ellipse(bx, by, 40, 22, 0, 0, Math.PI * 2); c.fill(); }
+      c.restore();
+    }
+    if (f.glasses > .01) { // 勉強モードのメガネ
+      c.save(); c.globalAlpha = f.glasses; c.translate((f.glassesDx || 0) * .5, 0);
+      c.strokeStyle = pal.ink; c.lineWidth = 7;
+      c.beginPath(); c.arc(214, 228, 44, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(366, 228, 44, 0, Math.PI * 2); c.stroke();
+      c.stroke(new Path2D("M258 222 Q290 206 322 222 M170 216 L118 204 M410 216 L462 204"));
+      c.restore();
+    }
+    if (f.beard > .01) { // 論破王の無精ひげ
+      c.save(); c.globalAlpha = f.beard; c.translate(f.beardDx, 0);
+      c.translate(290, 330); c.rotate(f.mouthRot * .5 * Math.PI / 180); c.translate(-290, -330);
+      c.fillStyle = withAlpha(pal.ink, .45); c.fill(new Path2D(f.beardD));
+      c.strokeStyle = pal.ink; c.lineWidth = 7; c.stroke(new Path2D(f.goateeD));
+      c.restore();
+    }
+    faceTex.needsUpdate = true;
+  }
+
+  let visible = true;
+  return {
+    setVisible(v) { visible = v; canvas.hidden = !v; if (v) resize(); },
+    // 色を差し替える（キャラクリで作った色を反映）
+    setLook(colors) {
+      Object.assign(pal, colors);
+      footMat.color.set(pal.body);
+      inkMat.color.set(pal.ink);
+      gemMat?.color.set(pal.eye);
+    },
+    update(p) {
+      if (!visible) return;
+      const t = p.now / 1000;
+      drawFace(p.face);
+
+      // 話す：声の山で縦にぷるんと伸び縮み、聞く：少し前のめり＆ふくらむ
+      const talk = p.talkEnv;
+      if (talk - lastTalk > .18) { sq.v -= .12; hop.v += .05; }
+      lastTalk = talk;
+      const breath = Math.sin(t * 1.6) * .06;
+      const s = sq.step(breath + talk * .35 + p.micLevel * .25);
+      const inf = body.morphTargetInfluences;
+      inf[idx.Squash] = Math.max(0, s) * 1.2;
+      inf[idx.Stretch] = Math.max(0, -s) * 1.2 + (p.state === "speaking" ? Math.max(0, Math.sin(t * 7.5)) * talk * .25 : 0);
+      inf[idx.Puff] = .15 + Math.sin(t * 1.6) * .1 + p.micLevel * .6 + (p.state === "hearing" ? .25 : 0);
+      // カメラ（ついてくるモード中は固定、それ以外は指やマウスでちょっと回り込む）
+      const d = camera.userData.dist || 7;
+      const par = p.follow ? 0 : 1;
+      camera.position.set(Math.sin(.18 + p.ptr.x * .08 * par) * d, .95 + d * .08 + p.ptr.y * .15 * par, Math.cos(.18 + p.ptr.x * .08 * par) * d);
+      camera.lookAt(lookAt);
+      camera.updateMatrixWorld();
+
+      // ついてくる：ポインターの下の床の位置へ、ばねで遅れてぬるっと移動
+      let tx = 0, tz = 0;
+      if (p.follow && p.ptrActive) {
+        ray.setFromCamera(ndc.set(p.ptr.x, p.ptr.y), camera);
+        if (ray.ray.intersectPlane(floor, hit)) {
+          const hx = camera.aspect * 1.05, hz = 1.1;
+          tx = THREE.MathUtils.clamp(hit.x, -hx, hx); tz = THREE.MathUtils.clamp(hit.z, -1.4, hz);
+        }
+      }
+      const px = posX.step(tx), pz = posZ.step(tz);
+      const vx = posX.v, vz = posZ.v, speed = Math.hypot(vx, vz);
+      root.position.x = px; root.position.z = pz;
+
+      const l = lean.step(-p.tilt / 7 + THREE.MathUtils.clamp(vx * 9, -1.2, 1.2));
+      inf[idx.LeanL] = Math.max(0, -l); inf[idx.LeanR] = Math.max(0, l);
+      uniforms.uJelly.value = jelly.step(0) + lean.v * 6 + THREE.MathUtils.clamp(-vx * 14, -1.5, 1.5);
+      uniforms.uWave.value = talk + p.micLevel * .6 + Math.min(1.5, speed * 25);
+      uniforms.uTime.value = t;
+      if (speed > .004) { const k = Math.min(1, speed * 22); inf[idx.Squash] += Math.abs(Math.sin(t * 13)) * .5 * k; inf[idx.Stretch] += Math.abs(Math.cos(t * 13)) * .35 * k; }
+
+      // ぴょこぴょこ跳ねながら移動
+      const walk = Math.min(1, speed * 30);
+      root.position.y = Math.max(0, hop.step(0)) + Math.sin(t * 1.1) * .015 + Math.abs(Math.sin(t * 13)) * .09 * walk;
+      // 顔をポインターの方へ向ける
+      const faceTo = p.follow && p.ptrActive ? THREE.MathUtils.clamp((tx - px) * .9 + vx * 12, -.9, .9) : Math.sin(t * .45) * .12 + p.ptr.x * .35;
+      root.rotation.y = yaw.step(faceTo);
+      root.rotation.z = THREE.MathUtils.degToRad(-p.tilt * .5) - THREE.MathUtils.clamp(vx * 3, -.25, .25);
+      if (p.state === "away") { root.rotation.x = .06; root.position.y -= .03; } else root.rotation.x = THREE.MathUtils.clamp(vz * 3, -.2, .2);
+
+      // 足：話すとき・歩くときはトコトコ
+      feet.forEach((f, i) => {
+        const step = (p.state === "speaking" ? .025 * talk : 0) + .06 * walk;
+        f.mesh.position.y = f.y + Math.max(0, Math.sin(t * (walk > .1 ? 13 : 9) + i * 2.1)) * step;
+      });
+      shadow.position.x = px; shadow.position.z = pz;
+      shadow.scale.setScalar(1 - (root.position.y) * .8);
+
+      // 王冠：体の伸び縮み・傾きに合わせて頭の上に乗せる
+      if (crown) {
+        const c = p.face.crown || 0;
+        crown.visible = c > .02;
+        if (crown.visible) {
+          const top = 1.5, b = crown.userData.base;
+          crown.position.set(
+            b.x + (inf[idx.LeanR] - inf[idx.LeanL]) * .15 + Math.sin(t * 2.1 + top * 3.2) * .012 * (1 + uniforms.uWave.value * 2.5),
+            b.y + (inf[idx.Stretch] * .12 - inf[idx.Squash] * .14) * top + inf[idx.Puff] * .03 + (1 - c) * .5,
+            b.z);
+          crown.scale.setScalar(.6 + c * .4);
+        }
+      }
+
+      // 本体の画面上の位置（目線の計算に使う）
+      proj.set(px, .7, pz).project(camera);
+      screenPos.x = proj.x; screenPos.y = proj.y;
+      renderer.render(scene, camera);
+      return screenPos;
+    },
+  };
+}
