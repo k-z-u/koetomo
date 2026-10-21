@@ -597,18 +597,127 @@
     .mode-more-cell b { font-size: 10px; }
   }
 
-  /* portrait hint */
-  .rotate {
-    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    flex-direction: column; gap: 12px; background: var(--bg); z-index: 50;
-    color: var(--ink-soft); font-size: 15px;
-  }
-  @media (orientation: portrait) and (max-width: 700px) {
-    .rotate { display: flex; }
-  }
   @media (max-height: 420px) {
     .row { grid-template-columns: 100px 1fr; margin-bottom: 10px; }
     .sheet { padding: 18px 22px; }
+  }
+
+  /* 操作・設定・キャラに別々の領域を確保する（ブラウザのツールバーにも追従） */
+  .app {
+    inset: 0 0 auto; height: 100%; height: 100dvh;
+    display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .top {
+    position: relative; grid-row: 1; height: auto; min-width: 0;
+    padding: 8px 16px 4px; gap: 8px; flex-wrap: wrap;
+  }
+  .brand, .top-actions { min-width: 0; gap: 6px; align-items: center; }
+  .brand { flex-wrap: wrap; }
+  .mode-chip { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mode-hub-btn, .usage-btn, .rec-btn { margin: 0; min-height: 44px; flex: none; }
+  .icon-btn { width: 44px; height: 44px; flex: none; }
+  .stage { position: relative; grid-row: 3; grid-template: minmax(0, 1fr) / minmax(0, 1fr); min-height: 0; min-width: 0; padding: 0; overflow: hidden; }
+  #mascot { width: min(72vw, 800px); height: 100%; min-height: 0; min-width: 0; max-height: 100%; }
+  .split-stage { padding: 0 12px; }
+  .split-half { min-height: 0; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+  .split-mascot { width: 100%; height: 100%; min-height: 0; min-width: 0; max-height: 100%; max-width: 560px; }
+  .split-bar {
+    position: relative; grid-row: 2; inset: auto; transform: none; justify-self: center;
+    max-width: calc(100% - 24px); gap: 8px; margin: 4px 12px; padding: 6px 8px;
+    border-radius: 20px;
+  }
+  .split-pick { flex: 1; }
+  .split-select, .split-select.voice { display: block; width: 140px; max-width: 100%; height: 44px; font-size: 14px; flex: 1; }
+  .split-select.voice { width: 155px; }
+  .controls, .app.studying .controls {
+    position: relative; grid-row: 4; left: auto; bottom: auto; transform: none;
+    justify-self: center; max-width: calc(100% - 16px); margin: 4px 8px; padding: 6px;
+    gap: 2px;
+  }
+  .ctl, .app.studying .ctl { height: 48px; padding: 0 clamp(10px, 2vw, 28px); gap: 6px; font-size: 15px; }
+  .controls[data-vis="hidden"] { transform: translateY(8px); }
+  .credit { position: static; grid-row: 5; justify-self: end; margin: 2px 16px 6px; font-size: 10px; }
+  .toast { top: auto; bottom: max(100px, calc(env(safe-area-inset-bottom) + 100px)); width: max-content; max-width: calc(100% - 32px); border-radius: 18px; }
+  .sheet { max-height: calc(100dvh - 32px); min-width: 0; }
+  .sheet.creator { max-height: calc(100dvh - 24px); }
+  .scrim { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .study { top: 8px; bottom: 8px; right: 12px; max-width: calc(50% - 12px); }
+  .subjects { flex-wrap: wrap; border-radius: 18px; }
+  @media (max-width: 1000px) {
+    .top { padding-inline: 10px; }
+    .top-actions { gap: 2px; }
+    .mode-chip { max-width: 110px; }
+    .rec-btn { width: 44px; padding: 0; justify-content: center; }
+    #recLabel { display: none; }
+    .split-select, .split-select.voice { width: 125px; }
+  }
+  @media (max-width: 700px) {
+    .top { gap: 4px; }
+    .brand { flex: 1; }
+    .mode-chip { display: none !important; }
+    .mode-hub-btn { padding-inline: 10px; }
+    .usage-btn { padding-right: 8px; gap: 2px; }
+    .usage-btn .uring, .usage-btn svg { width: 24px; height: 24px; }
+    .usage-btn .utxt { font-size: 11px; }
+    .usage-btn .utxt b { font-size: 14px; }
+    .ctl, .app.studying .ctl { font-size: 13px; padding-inline: 10px; }
+    .ctl svg, .app.studying .ctl svg { width: 20px; height: 20px; }
+    .controls .sep { margin: 0; height: 22px; }
+    .split-bar { width: calc(100% - 24px); }
+    .split-pick { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px; }
+    .split-select, .split-select.voice { width: 100%; font-size: 13px; }
+    .split-select.voice { grid-column: 2; }
+    .sheet { padding: 20px; }
+    .row { grid-template-columns: 1fr; gap: 6px; }
+    .field { font-size: 16px; }
+    .sheet.usage-sheet, .sheet.rec-sheet { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 20px; }
+    .ring-wrap { width: min(240px, 55vw); }
+    .rec-sheet video { max-width: 100%; height: min(40dvh, 320px); margin-inline: auto; }
+    .usage-actions { flex-wrap: wrap; }
+  }
+  @media (max-width: 480px) {
+    .top .brand, .top-actions { width: 100%; }
+    .top .brand { justify-content: space-between; }
+    .top-actions { justify-content: flex-end; }
+    .usage-btn { margin-right: auto; }
+    .ctl, .app.studying .ctl { flex-direction: column; height: 56px; justify-content: center; gap: 3px; padding-inline: 12px; }
+  }
+  @media (orientation: portrait) and (max-width: 700px) {
+    #mascot { width: 100%; }
+    .split-stage { padding-inline: 2px; }
+    .app.studying .stage { display: flex; flex-direction: column; }
+    .app.studying #mascot, .app.studying #mascot3d { transform: none; height: 28%; flex: none; }
+    .app.studying #mascot3d { position: relative; }
+    .app.studying .study { position: relative; inset: auto; flex: 1; width: auto; max-width: none; min-height: 0; margin: 0 12px; }
+    .subjects button { flex: 1; padding-inline: 10px; min-height: 36px; }
+    .doc-empty { overflow: auto; justify-content: flex-start; padding: 12px; gap: 8px; }
+    .doc-empty .hint { display: none; }
+    .mode-hub { display: flex; flex-direction: column; gap: 12px; overflow: auto; padding: max(50px, calc(env(safe-area-inset-top) + 44px)) 16px max(16px, env(safe-area-inset-bottom)); }
+    .hub-zone, .hub-normal { position: relative; inset: auto; translate: none; clip-path: none; width: 100%; flex: none; border-radius: 22px; }
+    .hub-normal { order: -1; aspect-ratio: auto; min-height: 112px; padding: 12px; }
+    .hub-normal svg { width: 64px; }
+    .hub-body, .hub-study .hub-body, .hub-others .hub-body { position: static; padding: 16px; justify-items: start; }
+    .hub-study .hub-body { grid-template-columns: 64px minmax(0, 1fr); align-items: center; text-align: left; }
+    .hub-study .hub-body > svg { width: 64px; grid-row: span 2; }
+    .hub-title { font-size: 20px; }
+    .hub-desc { font-size: 12px; }
+    .hub-rows { width: 100%; }
+    .hub-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .mode-more-cell { width: 100%; min-width: 0; min-height: 72px; }
+    .mode-more-cell b { font-size: 11px; white-space: normal; }
+    .mode-more-cell svg { max-width: 60px; }
+  }
+  @media (max-height: 420px) and (orientation: landscape) {
+    .top { padding-top: 2px; padding-bottom: 0; }
+    .split-bar { margin-block: 2px; padding-block: 2px; }
+    .ctl, .app.studying .ctl { height: 44px; }
+    .controls { margin-block: 2px; padding: 3px; }
+    .credit { margin-block: 0 2px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   }
 </style>
 </head>
@@ -652,6 +761,20 @@
       </button>
     </div>
   </header>
+
+    <div class="split-bar" id="splitBar" role="group" aria-label="2人の性格と声">
+      <div class="split-pick">
+        <b aria-hidden="true">A</b>
+        <select class="split-select" id="splitModeA" aria-label="A の性格"></select>
+        <select class="split-select voice" id="splitVoiceA" aria-label="A の声"></select>
+      </div>
+      <span class="split-vs" aria-hidden="true">×</span>
+      <div class="split-pick">
+        <b aria-hidden="true">B</b>
+        <select class="split-select" id="splitModeB" aria-label="B の性格"></select>
+        <select class="split-select voice" id="splitVoiceB" aria-label="B の声"></select>
+      </div>
+    </div>
 
   <main class="stage">
     <svg id="mascot" viewBox="-30 -80 680 600" role="img" aria-label="マスコット">
@@ -711,49 +834,6 @@
         <canvas class="split-3d" id="split3dB" aria-label="キャラクターB（3D）"></canvas>
       </div>
     </div>
-    <div class="split-bar" id="splitBar" role="group" aria-label="分裂キャラクターの性格と声">
-      <div class="split-pick">
-        <b aria-hidden="true">A</b>
-        <select class="split-select" id="splitModeA" aria-label="A の性格"></select>
-        <select class="split-select voice" id="splitVoiceA" aria-label="A の声"></select>
-      </div>
-      <span class="split-vs" aria-hidden="true">×</span>
-      <div class="split-pick">
-        <b aria-hidden="true">B</b>
-        <select class="split-select" id="splitModeB" aria-label="B の性格"></select>
-        <select class="split-select voice" id="splitVoiceB" aria-label="B の声"></select>
-      </div>
-    </div>
-  </main>
-
-  <nav class="controls" id="controls" data-vis="shown">
-    <button class="ctl" id="btnMic" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8.5" y="2.8" width="7" height="12" rx="3.5" fill="currentColor" stroke="none"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.7"/></svg>
-      マイクオン
-    </button>
-    <span class="sep"></span>
-    <button class="ctl" id="btnOff" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15.5 10V6.3a3.5 3.5 0 0 0-6.6-1.6M8.5 9v2.3a3.5 3.5 0 0 0 5.6 2.8M5.5 11a6.5 6.5 0 0 0 10.8 4.9M18.5 11c0 .8-.1 1.5-.4 2.2M12 17.5v3.7M4 3.5l16 17"/></svg>
-      オフ
-    </button>
-    <span class="sep"></span>
-    <button class="ctl" id="btnAway" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 6.5h13v7.5a5 5 0 0 1-5 5h-3a5 5 0 0 1-5-5V6.5Z"/><path d="M16.5 9h1.7a2.6 2.6 0 0 1 0 5.2h-1.9"/></svg>
-      離席
-    </button>
-    <span class="sep"></span>
-    <button class="ctl" id="btnSplit" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8.7 7.2a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z"/>
-        <path d="M15.6 9.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z"/>
-        <path d="M9.8 14.2 7.3 19M14.8 16.6 17.4 20"/>
-      </svg>
-      <span id="splitLabel">分裂！</span>
-    </button>
-  </nav>
-
-  <div class="toast" id="toast"></div>
-  <div class="credit"><b class="ver">1.0.0 正式公開！</b>kzu_project</div>
 
   <!-- 勉強モード：教科と教材 -->
   <aside class="study" id="study" aria-label="勉強">
@@ -783,6 +863,38 @@
     <input type="file" id="docFile" accept="application/pdf,image/*" multiple hidden>
     <input type="file" id="docCam" accept="image/*" capture="environment" hidden>
   </aside>
+  </main>
+
+  <nav class="controls" id="controls" data-vis="shown">
+    <button class="ctl" id="btnMic" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8.5" y="2.8" width="7" height="12" rx="3.5" fill="currentColor" stroke="none"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.7"/></svg>
+      マイクオン
+    </button>
+    <span class="sep"></span>
+    <button class="ctl" id="btnOff" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15.5 10V6.3a3.5 3.5 0 0 0-6.6-1.6M8.5 9v2.3a3.5 3.5 0 0 0 5.6 2.8M5.5 11a6.5 6.5 0 0 0 10.8 4.9M18.5 11c0 .8-.1 1.5-.4 2.2M12 17.5v3.7M4 3.5l16 17"/></svg>
+      オフ
+    </button>
+    <span class="sep"></span>
+    <button class="ctl" id="btnAway" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 6.5h13v7.5a5 5 0 0 1-5 5h-3a5 5 0 0 1-5-5V6.5Z"/><path d="M16.5 9h1.7a2.6 2.6 0 0 1 0 5.2h-1.9"/></svg>
+      離席
+    </button>
+    <span class="sep"></span>
+    <button class="ctl" id="btnSplit" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.7 7.2a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z"/>
+        <path d="M15.6 9.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z"/>
+        <path d="M9.8 14.2 7.3 19M14.8 16.6 17.4 20"/>
+      </svg>
+      <span id="splitLabel">2人で会話</span>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="credit"><b class="ver">1.0.0 正式公開！</b>kzu_project</div>
+
+
 </div>
 
 <!-- settings -->
@@ -1083,11 +1195,7 @@
   </div>
 </div>
 
-<div class="rotate">
-  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#16C4DA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M8 3.5a9 9 0 0 1 8 0M16 3.5l-.8 2M16 3.5l-2.1-.3"/></svg>
-  スマホを横向きにしてね
-  <button class="btn primary" id="rotateFull">全画面で横向きにする</button>
-</div>
+
 
 <!-- モードハブ：画面を斜めに分ける。右上=勉強・左下=その他のキャラ（クレーマーなど）・まん中=ふつう -->
 <div class="mode-hub" id="modeHub" role="dialog" aria-modal="true" aria-label="モードを選ぶ">
@@ -1777,6 +1885,7 @@ function wakeControls() {
   if (MOCK) return;
   controls.dataset.vis = "shown";
   clearTimeout(fadeT1); clearTimeout(fadeT2);
+  if (matchMedia("(any-pointer: coarse)").matches || !micWanted || controls.contains(document.activeElement)) return;
   fadeT1 = setTimeout(() => controls.dataset.vis = "dim", 5000);
   fadeT2 = setTimeout(() => controls.dataset.vis = "hidden", 9000);
 }
@@ -1784,6 +1893,8 @@ function wakeControls() {
   if (ev === "pointermove" && e.pointerType !== "mouse") return;
   wakeControls();
 }, { passive: true }));
+
+controls.addEventListener("focusin", wakeControls);
 
 /* ============ トースト ============ */
 let toastT = 0;
@@ -1843,7 +1954,7 @@ $("mReset").onclick = () => {
   $("menuScrim").classList.remove("open");
   const wasOn = micWanted;
   stopAll();
-  if (wasOn) { if (split.on) startSplitSessions(); else startSession(); }
+  if (wasOn) startMicFlow();
   else setState("ready");
   toast(split.on ? "二人の会話をリセットしました" : "会話をリセットしました");
 };
@@ -1873,8 +1984,6 @@ const syncFull = () => root.classList.toggle("is-full", !!fsElement());
 document.addEventListener("fullscreenchange", syncFull);
 document.addEventListener("webkitfullscreenchange", syncFull);
 $("btnFull").onclick = () => fsElement() ? exitFull() : enterFull();
-$("rotateFull").onclick = enterFull;
-if (!canFullscreen && isStandalone) $("rotateFull").style.display = "none";
 $("mFull").onclick = () => { $("menuScrim").classList.remove("open"); enterFull(); };
 $("mForget").onclick = () => { store.del("geminiKey"); usage.render(); $("menuScrim").classList.remove("open"); toast("API キーを削除しました"); };
 
@@ -2053,27 +2162,39 @@ const TOKEN_URL = "https://koetomo-token.myais.workers.dev/token";
 const WS_URL_TOKEN = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 const usingOwnKey = () => !!store.get("geminiKey");
 
+async function fetchSharedToken() {
+  try {
+    const res = await fetch(TOKEN_URL, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: data.error || (res.status === 429 ? "busy" : "upstream"), retryAfter: data.retryAfter || res.headers.get("Retry-After") };
+    return data.token ? data : { error: "upstream" };
+  } catch { return { error: "network" }; }
+}
+function tokenErrorText(data) {
+  if (data.error === "network") return "つながりませんでした（ネットを確認してね）";
+  if (data.error === "busy") return "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね";
+  if (data.error === "slow_down") {
+    const seconds = Math.max(1, Math.ceil(Number(data.retryAfter) || 1));
+    return `接続が続いています。あと${seconds}秒ほどで、もう一度マイクをオンにできます`;
+  }
+  if (data.error === "not_configured") return "共有の無料枠はまだ準備中です。設定から自分のキーを入れると話せます";
+  return "つながりませんでした（共有枠）";
+}
+
 async function startSession() {
+  if (!micWanted || !micNode || split.on) return;
   const key = store.get("geminiKey");
-  ready = false;
+  ready = false; sessionStartedAt = 0;
   let url, model = store.get("model", DEFAULT_MODEL);
   const myTurn = Symbol(); session = myTurn;   // 鍵を待っている間に止められたら何もしない
   if (key) {
     url = `${WS_URL}?key=${encodeURIComponent(key)}`;
   } else {
     if (usage.remainingMs() <= 0) { onLimitReached(); return; }
-    let res;
-    try { res = await fetch(TOKEN_URL, { method: "POST" }); } catch { res = null; }
-    if (session !== myTurn) return;
-    const data = res ? await res.json().catch(() => ({})) : {};
-    if (!res || !res.ok) {
-      stopAll(); setState("sad");
-      toast(!res ? "つながりませんでした（ネットを確認してね）" :
-            data.error === "busy" ? "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね" :
-            data.error === "slow_down" ? "ちょっと待って！1分ほどしてからもう一度押してね" :
-            data.error === "not_configured" ? "共有の無料枠はまだ準備中です。設定から自分のキーを入れると話せます" :
-            "つながりませんでした（共有枠）", 5500);
-      return;
+    const data = await fetchSharedToken();
+    if (session !== myTurn || !micWanted || split.on) return;
+    if (!data.token) {
+      stopAll(); setState("sad"); toast(tokenErrorText(data), 5500); return;
     }
     url = `${WS_URL_TOKEN}?access_token=${encodeURIComponent(data.token)}`;
     model = data.model || model;
@@ -2082,6 +2203,7 @@ async function startSession() {
   const ws = new WebSocket(url);
   session = ws;
   ws.onopen = () => {
+    if (ws !== session || !micWanted || split.on) { ws.close(); return; }
     ws.send(JSON.stringify({
       setup: {
         model: "models/" + model,
@@ -2302,7 +2424,7 @@ function stopPlayback() {
 }
 
 /* ============ マイク入力（16kHz PCM） ============ */
-let inCtx = null, micStream = null, micNode = null, micLevel = 0;
+let inCtx = null, micStream = null, micNode = null, micLevel = 0, micEpoch = 0;
 
 // Float32 の入力を 16kHz / Int16 に変換して 100ms ごとに送る（worklet とメインスレッドで共用）
 const CAPTURE_SRC = `
@@ -2360,48 +2482,58 @@ function sendPcm(pcm) {
     session.send(JSON.stringify({ realtimeInput: { audio: { data: int16ToB64(pcm), mimeType: "audio/pcm;rate=16000" } } }));
   }
 }
-function onMicLevel(level) { micLevel = lerp(micLevel, Math.min(1, level * 8), .3); }
+function onMicLevel(level) {
+  micLevel = lerp(micLevel, Math.min(1, level * 8), .3);
+  if (split.on && !split.busy && !playing.size && performance.now() >= micMutedUntil && micLevel > .18) split.userAt = performance.now();
+}
 
-async function startMic() {
-  // AudioContext はクリック直後（ユーザー操作中）に作って resume しておく
+async function startMic(epoch) {
   const AC = window.AudioContext || window.webkitAudioContext;
-  try { inCtx = new AC({ sampleRate: 16000 }); } catch { inCtx = new AC(); }
-  inCtx.resume().catch(() => {});
-
-  micStream = await navigator.mediaDevices.getUserMedia({
+  let ctx;
+  try { ctx = new AC({ sampleRate: 16000 }); } catch { ctx = new AC(); }
+  inCtx = ctx;
+  ctx.resume().catch(() => {});
+  const stream = await navigator.mediaDevices.getUserMedia({
     audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
   });
-
+  if (epoch !== micEpoch || !micWanted) {
+    stream.getTracks().forEach((t) => t.stop());
+    ctx.close().catch(() => {}); return;
+  }
+  micStream = stream;
   let source;
-  try { source = inCtx.createMediaStreamSource(micStream); }
-  catch { // サンプルレート違いで繋げないブラウザ（Firefox など）
-    inCtx.close(); inCtx = new AC(); inCtx.resume().catch(() => {});
-    source = inCtx.createMediaStreamSource(micStream);
+  try { source = ctx.createMediaStreamSource(stream); }
+  catch {
+    ctx.close().catch(() => {}); ctx = new AC(); inCtx = ctx; ctx.resume().catch(() => {});
+    source = ctx.createMediaStreamSource(stream);
   }
-
-  const mute = inCtx.createGain(); mute.gain.value = 0;
+  const mute = ctx.createGain(); mute.gain.value = 0;
+  let node;
   try {
-    if (!inCtx.audioWorklet) throw new Error("no worklet");
+    if (!ctx.audioWorklet) throw new Error("no worklet");
     const url = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
-    await inCtx.audioWorklet.addModule(url);
-    micNode = new AudioWorkletNode(inCtx, "pcm16-capture");
-    micNode.port.onmessage = ({ data }) => data.pcm ? sendPcm(data.pcm) : onMicLevel(data.level);
+    try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
+    if (epoch !== micEpoch || !micWanted) return;
+    node = new AudioWorkletNode(ctx, "pcm16-capture");
+    node.port.onmessage = ({ data }) => data.pcm ? sendPcm(data.pcm) : onMicLevel(data.level);
   } catch (e) {
-    // file:// で開いたときなど worklet が読めない場合はこちら
+    if (epoch !== micEpoch || !micWanted) return;
     console.warn("AudioWorklet が使えないので ScriptProcessor で代用します", e);
-    const feed = makeCapture(inCtx.sampleRate, sendPcm, onMicLevel);
-    micNode = inCtx.createScriptProcessor(2048, 1, 1);
-    micNode.onaudioprocess = (ev) => feed(ev.inputBuffer.getChannelData(0));
+    const feed = makeCapture(ctx.sampleRate, sendPcm, onMicLevel);
+    node = ctx.createScriptProcessor(2048, 1, 1);
+    node.onaudioprocess = (ev) => feed(ev.inputBuffer.getChannelData(0));
   }
-  source.connect(micNode).connect(mute).connect(inCtx.destination);
+  micNode = node;
+  source.connect(node).connect(mute).connect(ctx.destination);
   attachMicToRec();
 }
+
 function stopMic() {
   // マイクをオフにしたら録画にも声を入れない
   if (rec2?.mic) { try { rec2.mic.src.disconnect(); } catch {} rec2.mic.tracks.forEach((t) => t.stop()); rec2.mic = null; }
   micStream?.getTracks().forEach((t) => t.stop());
   try { micNode?.disconnect(); } catch {}
-  inCtx?.close();
+  inCtx?.close().catch(() => {});
   inCtx = micStream = micNode = null; micLevel = 0;
 }
 
@@ -2419,7 +2551,9 @@ function readLevel() {
 
 /* ============ ボタン ============ */
 function stopAll() {
-  micWanted = false;
+  micWanted = false; micEpoch++;
+  clearTimeout(split.restartTimer); clearTimeout(split.changeTimer);
+  wakeControls();
   clearTimeout(hearingTimer);
   clearTimeout(split.timer);
   split.epoch++;
@@ -2443,11 +2577,13 @@ async function startMicFlow() {
     toast("マイクは https:// か localhost で開いたときだけ使えます", 5000); setState("sad"); return;
   }
   ensureOut(); outCtx.resume();
-  if (matchMedia("(pointer: coarse)").matches && !fsElement() && canFullscreen) enterFull(); // スマホはマイクオンで自動的に全画面
   micWanted = true;
+  const epoch = ++micEpoch;
   setState("thinking");
-  try { await startMic(); }
+  wakeControls();
+  try { await startMic(epoch); }
   catch (e) {
+    if (epoch !== micEpoch || !micWanted) return;
     console.error("マイク起動エラー", e);
     stopMic(); micWanted = false; setState("sad");
     const name = e?.name || "";
@@ -2457,6 +2593,7 @@ async function startMicFlow() {
           `マイクを起動できませんでした：${name} ${e?.message || ""}`, 6000);
     return;
   }
+  if (epoch !== micEpoch || !micWanted) return;
   if (split.on) startSplitSessions(); else startSession();
 }
 $("btnMic").onclick = startMicFlow;
@@ -2649,14 +2786,14 @@ function applyMode() {
   const mode = getMode();
   const chip = $("modeChip");
   chip.textContent = modeChipText(mode) + (mode === "study" ? "・" + SUBJECTS[getSubject()] : "");
-  $("app").classList.toggle("studying", mode === "study");
+  $("app").classList.toggle("studying", mode === "study" && !split.on);
   chip.classList.add("on"); // つねに表示（タップでモードハブ）
   document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
   const card = document.querySelector(`[data-mode="${mode}"]`);
   $("modeDesc").innerHTML = card ? `<b>${labelFor(mode)}</b>${card.dataset.desc}` : "";
   fidgetOn = mode === "dopa" || (mode === "my" && myFidget());
   applyLook();
-  if (split.on) chip.textContent = "分裂中";
+  if (split.on) chip.textContent = "2人で会話";
 }
 function setMode(mode) {
   if (mode === "custom" && !customLoad()) { openCreator(); return; }   // まだ作っていないときは作成画面へ
@@ -2766,10 +2903,11 @@ function applySplitUI() {
   const on = split.on;
   $("app").classList.toggle("split", on);
   $("btnSplit").setAttribute("aria-pressed", String(on));
-  $("splitLabel").textContent = on ? "合体" : "分裂！";
+  $("splitLabel").textContent = on ? "1人に戻す" : "2人で会話";
+  $("app").classList.toggle("studying", !on && getMode() === "study");
   if (on) {
     fillSplitPicks();
-    $("modeChip").textContent = "分裂中";
+    $("modeChip").textContent = "2人で会話";
     $("modeChip").classList.add("on");
     if (view3d) ensureSplit3D();
   } else {
@@ -2782,6 +2920,8 @@ function applySplitUI() {
 }
 
 function closeSplitSessions() {
+  clearTimeout(split.restartTimer); clearTimeout(split.changeTimer);
+  split.restarting = false;
   split.epoch++;
   clearTimeout(split.timer);
   split.busy = false; split.started = false; split.speaking = null;
@@ -2812,31 +2952,24 @@ function setSplit(on) {
       try { ws?.close(); } catch {}
     }
     applySplitUI();
-    toast("こえとも、分裂！ 会話の切れ目に話しかけると割り込めます", 4200);
-    if (!micWanted) startMicFlow(); else startSplitSessions();
+    toast(micWanted ? "2人の会話に切り替えます。会話の合間に話しかけられます" : "A・Bの性格と声を選んで、マイクオンで会話開始（無料枠は2人分使います）", 5500);
+    if (micWanted) startSplitSessions();
   } else {
-    closeSplitSessions();
+    closeSplitSessions(); stopPlayback();
     split.on = false;
     split.started = false;
     applySplitUI();
     if (micWanted) { setState("thinking"); startSession(); }
     else setState("ready");
-    toast("合体しました");
+    toast("1人に戻しました");
   }
 }
 $("btnSplit").onclick = () => setSplit(!split.on);
-$("btnSplit").title = "2人ぶんの会話なので、共有枠の残り時間は2倍で減ります";
+$("btnSplit").title = "2人のキャラが会話します。マイクオンで開始（無料枠は2人分）";
 
 /* ---- 2本の Live セッション ---- */
-async function fetchSplitToken() {
-  let res = null;
-  try { res = await fetch(TOKEN_URL, { method: "POST" }); } catch { return { error: "network" }; }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { error: data.error || (res.status === 429 ? "busy" : "upstream") };
-  return data;
-}
 async function startSplitSessions() {
-  if (!split.on || !micWanted) return;
+  if (!split.on || !micWanted || !micNode) return;
   closeSplitSessions();
   const epoch = split.epoch;
   split.started = false; split.busy = false;
@@ -2849,16 +2982,12 @@ async function startSplitSessions() {
     urls = [WS_URL + "?key=" + encodeURIComponent(key), WS_URL + "?key=" + encodeURIComponent(key)];
   } else {
     if (usage.remainingMs() <= 0) { onLimitReached(); return; }
-    const rs = await Promise.all([fetchSplitToken(), fetchSplitToken()]);
+    const rs = await Promise.all([fetchSharedToken(), fetchSharedToken()]);
     if (split.epoch !== epoch || !split.on || !micWanted) return;
     const bad = rs.find((r) => !r.token);
     if (bad) {
       stopAll(); setState("sad");
-      toast(bad.error === "busy" ? "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね" :
-            bad.error === "slow_down" ? "ちょっと待って！1分ほどしてからもう一度押してね" :
-            bad.error === "not_configured" ? "共有の無料枠はまだ準備中です。設定から自分のキーを入れると話せます" :
-            bad.error === "network" ? "つながりませんでした（ネットを確認してね）" :
-            "つながりませんでした（共有枠）", 5500);
+      toast(tokenErrorText(bad), 5500);
       return;
     }
     urls = rs.map((r) => WS_URL_TOKEN + "?access_token=" + encodeURIComponent(r.token));
@@ -2910,7 +3039,9 @@ function openSplitSide(side, url, model, epoch) {
     }
     split.restarting = true;
     toast("つなぎ直しています…");
-    setTimeout(() => {
+    const reconnectEpoch = split.epoch;
+    split.restartTimer = setTimeout(() => {
+      if (split.epoch !== reconnectEpoch) return;
       split.restarting = false;
       if (split.on && micWanted) startSplitSessions();
     }, 1300);
@@ -2983,16 +3114,15 @@ function finishSplitTurn(side) {
   const otherSide = side === "a" ? "b" : "a";
   split.userText = ""; split.userSpoke = false;
   clearTimeout(split.timer);
-  const waitStart = performance.now();
   const tryNext = () => {
-    if (!split.on || !micWanted || split.busy) return;
+    if (!split.on || !micWanted || split.busy || split.userSpoke) return;
     if (playing.size) { split.timer = setTimeout(tryNext, 200); return; }
-    // ユーザーが話し始めていたら、その返事を少し待つ（ずっと待ち続けない）
-    const userSoon = performance.now() - split.userAt < 1100 || micLevel > .1;
-    if (userSoon && performance.now() - waitStart < 4500) { split.timer = setTimeout(tryNext, 250); return; }
+    // ユーザーが話し始めていたら、音声入力と返事が完了するまで次の指示を送らない。
+    const userSoon = performance.now() - split.userAt < 1100;
+    if (userSoon) { split.timer = setTimeout(tryNext, 250); return; }
     sendSplitPrompt(otherSide, text, userText, false);
   };
-  split.timer = setTimeout(tryNext, 1000);
+  split.timer = setTimeout(tryNext, 1800);
 }
 function onSplitMessage(side, msg, epoch) {
   if (split.epoch !== epoch) return;
@@ -3157,10 +3287,13 @@ function destroySplit3D() {
 
 function restartSplitSessions(reason) {
   if (!split.on || !micWanted) return;
-  closeSplitSessions();
-  stopPlayback();
-  toast(reason + "。つなぎ直しています…");
-  startSplitSessions();
+  clearTimeout(split.changeTimer);
+  split.changeTimer = setTimeout(() => {
+    if (!split.on || !micWanted) return;
+    closeSplitSessions(); stopPlayback();
+    toast(reason + "。つなぎ直しています…");
+    startSplitSessions();
+  }, 400);
 }
 
 splitInitSide("a");
