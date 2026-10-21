@@ -109,6 +109,50 @@
   #mascot3d { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
   .app.view3d #mascot { display: none; }
 
+  /* ---- 分裂（2人） ---- */
+  .app.split #mascot, .app.split #mascot3d { display: none; }
+  .split-stage {
+    position: absolute; inset: 0; display: none;
+    grid-template-columns: 1fr 1fr; align-items: stretch;
+    padding: 0 2vw 9vh;
+  }
+  .app.split .split-stage { display: grid; }
+  .split-half { position: relative; display: grid; place-items: center; min-width: 0; animation: splitIn .45s cubic-bezier(.2,.8,.2,1) both; }
+  .split-half:nth-child(2) { animation-delay: .06s; }
+  @keyframes splitIn { from { opacity: 0; transform: scale(.78); } to { opacity: 1; transform: none; } }
+  .split-mascot { width: min(40vw, 52vh * 1.17); height: auto; overflow: visible; transition: filter .25s, opacity .25s; }
+  .split-3d { display: none; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  .app.split.view3d .split-stage.ready .split-mascot { display: none; }
+  .app.split.view3d .split-stage.ready .split-3d { display: block; }
+  .split-half.speaking .split-mascot { filter: drop-shadow(0 0 18px rgba(22,196,218,.35)); }
+  .split-half.hearing .split-mascot { opacity: .9; }
+  .split-pick.speaking > b { background: var(--cyan); color: #fff; box-shadow: 0 0 0 3px rgba(22,196,218,.15); }
+  .split-pick.hearing > b { background: #fff; color: #0A8FA2; }
+  .split-bar {
+    position: absolute; z-index: 6; left: 50%; transform: translateX(-50%);
+    top: calc(max(18px, env(safe-area-inset-top)) + 68px);
+    display: none; align-items: center; gap: 8px;
+    padding: 7px 9px; border-radius: 999px;
+    background: rgba(255,255,255,.95); box-shadow: var(--shadow);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .app.split .split-bar { display: flex; }
+  .split-pick { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .split-pick > b {
+    width: 22px; height: 22px; flex: none; border-radius: 50%;
+    background: var(--cyan-tint); color: #0A8FA2; display: grid; place-items: center;
+    font-size: 11px; font-weight: 900;
+  }
+  .split-select {
+    height: 32px; max-width: 144px; min-width: 0;
+    padding: 0 8px; border: 1.5px solid var(--line); border-radius: 999px;
+    background: #fff; color: var(--ink); font: 700 12px/1 inherit; font-family: inherit; cursor: pointer;
+  }
+  .split-select.voice { max-width: 136px; color: var(--ink-soft); font-weight: 500; }
+  .split-vs { font-size: 11px; color: var(--ink-faint); font-weight: 700; }
+  @media (max-width: 760px) { .split-select.voice { display: none; } .split-select { max-width: 104px; } }
+  @media (max-width: 600px) { .split-select { max-width: 88px; } .split-pick { gap: 4px; } }
+
   /* ---- controls ---- */
   .controls {
     position: absolute; left: 50%; bottom: max(5.5vh, calc(env(safe-area-inset-bottom) + 10px));
@@ -655,6 +699,31 @@
       </g>
     </svg>
     <canvas id="mascot3d" hidden></canvas>
+
+    <!-- 分裂：A と B の2人 -->
+    <div class="split-stage" id="splitStage">
+      <div class="split-half" id="splitHalfA">
+        <svg class="split-mascot" id="splitSvgA" viewBox="-30 -80 680 600" role="img" aria-label="キャラクターA"></svg>
+        <canvas class="split-3d" id="split3dA" aria-label="キャラクターA（3D）"></canvas>
+      </div>
+      <div class="split-half" id="splitHalfB">
+        <svg class="split-mascot" id="splitSvgB" viewBox="-30 -80 680 600" role="img" aria-label="キャラクターB"></svg>
+        <canvas class="split-3d" id="split3dB" aria-label="キャラクターB（3D）"></canvas>
+      </div>
+    </div>
+    <div class="split-bar" id="splitBar" role="group" aria-label="分裂キャラクターの性格と声">
+      <div class="split-pick">
+        <b aria-hidden="true">A</b>
+        <select class="split-select" id="splitModeA" aria-label="A の性格"></select>
+        <select class="split-select voice" id="splitVoiceA" aria-label="A の声"></select>
+      </div>
+      <span class="split-vs" aria-hidden="true">×</span>
+      <div class="split-pick">
+        <b aria-hidden="true">B</b>
+        <select class="split-select" id="splitModeB" aria-label="B の性格"></select>
+        <select class="split-select voice" id="splitVoiceB" aria-label="B の声"></select>
+      </div>
+    </div>
   </main>
 
   <nav class="controls" id="controls" data-vis="shown">
@@ -671,6 +740,15 @@
     <button class="ctl" id="btnAway" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 6.5h13v7.5a5 5 0 0 1-5 5h-3a5 5 0 0 1-5-5V6.5Z"/><path d="M16.5 9h1.7a2.6 2.6 0 0 1 0 5.2h-1.9"/></svg>
       離席
+    </button>
+    <span class="sep"></span>
+    <button class="ctl" id="btnSplit" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.7 7.2a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z"/>
+        <path d="M15.6 9.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z"/>
+        <path d="M9.8 14.2 7.3 19M14.8 16.6 17.4 20"/>
+      </svg>
+      <span id="splitLabel">分裂！</span>
     </button>
   </nav>
 
@@ -732,7 +810,7 @@
       <label for="cosmetic">コスメティック</label>
       <select class="field" id="cosmetic">
         <option value="">なし</option>
-        <option value="ebifurai">えびふらい（3D のあたまにのる）</option>
+        <option value="ebifurai">えびふらい（3D できぐるみ）</option>
       </select>
     </div>
     <div class="row">
@@ -1045,6 +1123,13 @@
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const MOCK = params.get("mock"); // "1" | "2" | "3" -> 静止モックアップ
+
+// 「こえとも、分裂！」：2人ぶんの会話セッションと表示状態（詳細は後ろの SPLIT セクション）
+const split = {
+  on: false, a: null, b: null, epoch: 0, micSide: "a", turn: null,
+  busy: false, timer: 0, userText: "", userAt: 0, userSpoke: false,
+  started: false, speaking: null, last2d: 0, last3d: 0, restarting: false,
+};
 
 /* ============ 表情 ============ */
 // eye: w 横半径 / h 縦半径 / happy 0..1 (∩の目) / lx 視線
@@ -1412,6 +1497,20 @@ function myTags(m = myModeLoad()) {
   return [...myPunch(m).slice(0, 3).map((p) => p.label), ...myQuirks(m).slice(0, 1).map((q) => q.label)].join("・");
 }
 const MODE_LABEL = { normal: "ふつう", custom: "じぶんのキャラ", my: "じぶんのモード", claimer: "クレーマー", overprotect: "過保護", reisho: "冷笑", ishiki: "意識高い系", inbou: "陰謀論", dopa: "ドパガキ", ronpa: "論破王", study: "勉強" };
+// 分裂モードで「相手はどんなキャラか」を短く伝えるための要約
+const MODE_SUMMARY = {
+  normal: "やさしくて明るい、白いマスコット",
+  claimer: "理不尽なクレームをつける口の悪いクレーマー",
+  overprotect: "心配しすぎて行動がおかしい過保護な存在",
+  reisho: "斜に構えて小バカにする冷笑系",
+  ishiki: "ビジネス用語とカタカナ語だらけの意識高い系",
+  inbou: "何でも陰謀だと思い込む、おじいちゃん口調の陰謀論者",
+  dopa: "3秒で飽きる、刺激中毒のドパガキ",
+  ronpa: "屁理屈で論破してくる論破王",
+  custom: "ユーザーが作ったオリジナルキャラ",
+  my: "ユーザーが作ったオリジナルの芸風",
+  study: "やさしい家庭教師",
+};
 // 「じぶんのキャラ」「じぶんのモード」は、作ってあるときだけ選べる
 function modeOk(m) {
   if (!MODE_LABEL[m]) return false;
@@ -1431,14 +1530,14 @@ function labelFor(mode = getMode()) {
 function modeChipText(mode = getMode()) {
   return (mode === "custom" || mode === "my") ? "「" + labelFor(mode) + "」" : MODE_LABEL[mode] + "モード";
 }
-function exprFor(state) {
-  const mode = getMode();
+function exprForMode(mode, state) {
   let src;
   if (mode === "custom") src = customExprFor(state);
   else if (mode === "my") src = myExprFor(state);
   else src = MODE_EXPR[mode]?.[state] || EXPR[state] || EXPR.ready;
   return withDefaults(clone(src));
 }
+function exprFor(state) { return exprForMode(getMode(), state); }
 function withDefaults(e) {
   e.mouth.mrot ??= 0; e.mouth.mx ??= 0;
   e.eye.rot ??= 0; e.eye.brow ??= 0; e.eye.browRot ??= 0;
@@ -1597,7 +1696,7 @@ function render(now, instant) {
   els.zzz.setAttribute("opacity", appState === "away" ? (.55 + Math.sin(now / 700) * .35).toFixed(2) : 0);
   els.shadow.setAttribute("rx", (250 - bob * 2).toFixed(1));
 
-  if (mascot3d && view3d) {
+  if (mascot3d && view3d && !split.on) {
     const sp3 = mascot3d.update({
       now, state: appState, tilt: cur.tilt, talkEnv, micLevel,
       follow: following, ptr, ptrActive: ptr.active,
@@ -1609,11 +1708,19 @@ function render(now, instant) {
 
 /* ============ 3D 表示 ============ */
 let mascot3d = null, view3d = false, loading3d = null;
+let split3d = { a: null, b: null, loading: null, gen: 0 };
 let cosmetic = ""; try { cosmetic = localStorage.getItem("koetomo.cosmetic") || ""; } catch {}
 async function setView3d(on) {
   view3d = on;
   try { localStorage.setItem("koetomo.view3d", on ? "1" : "0"); } catch {}
   $("m3d").setAttribute("aria-checked", String(on));
+  if (split.on) {
+    // 分裂中は A/B の2つの3Dを出し入れする（まだ読めていなければ2Dのまま）
+    $("app").classList.toggle("view3d", on);
+    mascot3d?.setVisible(false);
+    if (on) await ensureSplit3D(); else destroySplit3D();
+    return;
+  }
   if (on && !mascot3d) {
     loading3d ??= Promise.all(["./mascot3d.js", "3d/koetomo.glb", "3d/crown.glb"])
       .then(([js, glb, crown]) => import(js).then((m) => m.createMascot3D($("mascot3d"), glb, crown, modeLook())));
@@ -1736,8 +1843,9 @@ $("mReset").onclick = () => {
   $("menuScrim").classList.remove("open");
   const wasOn = micWanted;
   stopAll();
-  if (wasOn) startSession(); else setState("ready");
-  toast("会話をリセットしました");
+  if (wasOn) { if (split.on) startSplitSessions(); else startSession(); }
+  else setState("ready");
+  toast(split.on ? "二人の会話をリセットしました" : "会話をリセットしました");
 };
 /* ============ 全画面（横向き固定） ============ */
 const root = document.documentElement;
@@ -1895,12 +2003,12 @@ const COMMON_RULE = [
   "相手が言った言葉そのものを拾ってから返す。",
 ].join("\n");
 // キャラの指示を最後に置く（直前の指示ほど強く効くため）
-function systemPrompt() {
-  const mode = getMode();
+function systemPrompt() { return promptForMode(getMode()); }
+function promptForMode(mode = getMode()) {
   if (mode === "study") return studyPrompt();
   if (mode === "custom") return [COMMON_RULE, customPrompt()].join("\n\n");
   if (mode === "my") return [COMMON_RULE, myPrompt()].join("\n\n");
-  return [COMMON_RULE, baseSystemPrompt()].join("\n\n");
+  return [COMMON_RULE, baseSystemPrompt(mode)].join("\n\n");
 }
 /* ============ 勉強モード ============ */
 const SUBJECTS = { kokugo: "国語", sugaku: "数学", eigo: "英語", rika: "理科", shakai: "社会" };
@@ -1930,8 +2038,7 @@ function studyPrompt() {
     "教材（過去問やプリント）が渡されている場合：「第◯問の(◯)」「◯ページの問題」「この問題」などと言われたら、教材の中から該当する問題を探し、まず「◯ページの第◯問(◯)ですね」と確認してから解説する。「この問題」だけなら、相手がいま画面で開いているページの問題として扱う。教材に無いことを聞かれたら、そう伝えてから一般的に説明する。",
   ].join("\n");
 }
-function baseSystemPrompt() {
-  const mode = getMode();
+function baseSystemPrompt(mode = getMode()) {
   if (MODE_PROMPT[mode]) return MODE_PROMPT[mode].join("\n");
   const persona = store.get("persona") || "やさしくて明るい、白くて四角いマスコットの話し相手。";
   return [
@@ -2018,12 +2125,12 @@ const DEBUG = params.has("debug");
 /* ---- 会話ログ（?debug=1 のとき書き出せる） ---- */
 const convLog = [];
 const logStart = Date.now();
-function logAdd(role, text) {
+function logAdd(role, text, mode = getMode()) {
   const t = (text || "").trim();
   if (!t) return;
   const last = convLog[convLog.length - 1];
   if (last && last.role === role && last.text === t) return;
-  convLog.push({ at: Date.now(), role, text: t, mode: getMode() });
+  convLog.push({ at: Date.now(), role, text: t, mode });
   if (convLog.length > 800) convLog.splice(0, convLog.length - 800);
 }
 function logText() {
@@ -2032,7 +2139,9 @@ function logText() {
     "こえとも 会話ログ",
     "書き出し: " + new Date().toLocaleString(),
     "モデル: " + sessionInfo.model + " / キー: " + sessionInfo.key,
-    "モード: " + labelFor(getMode()) + " / 表示: " + (view3d ? "3D" : "2D"),
+    "モード: " + (split.on
+      ? "分裂（A:" + labelFor(split.a?.mode || "normal") + " / B:" + labelFor(split.b?.mode || "normal") + "）"
+      : labelFor(getMode())) + " / 表示: " + (view3d ? "3D" : "2D"),
     "使用: " + Math.floor(usage.usedMs() / 60000) + "分（今日）",
     "".padEnd(40, "-"),
   ].join("\n");
@@ -2154,7 +2263,7 @@ function b64ToInt16(b64) {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Int16Array(bytes.buffer, 0, bytes.length >> 1);
 }
-function enqueuePcm(b64, rate) {
+function enqueuePcm(b64, rate, who = null) {
   ensureOut();
   const pcm = b64ToInt16(b64);
   const buf = outCtx.createBuffer(1, pcm.length, rate);
@@ -2166,10 +2275,21 @@ function enqueuePcm(b64, rate) {
   src.start(playHead);
   playHead += buf.duration;
   playing.add(src);
+  if (who) {
+    split.speaking = who;
+    if (split[who]) split[who].state = "speaking";
+    const other = split[who === "a" ? "b" : "a"];
+    if (other && other.state !== "speaking") other.state = "hearing";
+  } else if (appState !== "speaking") setState("speaking");
   src.onended = () => {
     playing.delete(src);
     if (!playing.size) micMutedUntil = performance.now() + 220;
-    if (!playing.size && appState === "speaking") setState(micWanted ? "listening" : "off");
+    if (!playing.size && who) {
+      if (split[who]?.state === "speaking") split[who].state = "listening";
+      const other = split[who === "a" ? "b" : "a"];
+      if (other?.state === "hearing") other.state = "listening";
+      split.speaking = null;
+    } else if (!playing.size && appState === "speaking") setState(micWanted ? "listening" : "off");
   };
 }
 function stopPlayback() {
@@ -2177,6 +2297,8 @@ function stopPlayback() {
   playing.clear();
   micMutedUntil = 0;
   if (outCtx) playHead = outCtx.currentTime;
+  split.speaking = null;
+  for (const side of ["a", "b"]) if (split[side] && split[side].state === "speaking") split[side].state = "listening";
 }
 
 /* ============ マイク入力（16kHz PCM） ============ */
@@ -2226,6 +2348,14 @@ function int16ToB64(ab) {
 let micMutedUntil = 0;
 function sendPcm(pcm) {
   if (playing.size || performance.now() < micMutedUntil) return;
+  if (split.on) {
+    if (split.busy) return;                       // AI どうしが話している間は聞き専
+    const st = split[split.micSide];
+    if (st?.ready && st.ws?.readyState === WebSocket.OPEN) {
+      st.ws.send(JSON.stringify({ realtimeInput: { audio: { data: int16ToB64(pcm), mimeType: "audio/pcm;rate=16000" } } }));
+    }
+    return;
+  }
   if (ready && session?.readyState === WebSocket.OPEN) {
     session.send(JSON.stringify({ realtimeInput: { audio: { data: int16ToB64(pcm), mimeType: "audio/pcm;rate=16000" } } }));
   }
@@ -2291,11 +2421,22 @@ function readLevel() {
 function stopAll() {
   micWanted = false;
   clearTimeout(hearingTimer);
+  clearTimeout(split.timer);
+  split.epoch++;
+  split.restarting = false;
+  split.busy = false; split.started = false; split.speaking = null;
+  split.userText = ""; split.userSpoke = false;
+  for (const side of ["a", "b"]) {
+    const st = split[side];
+    if (!st) continue;
+    const ws = st.ws; st.ws = null; st.ready = false; st.out = ""; st.state = "off";
+    try { ws?.close(); } catch {}
+  }
   const s = session; session = null; ready = false;
   try { s?.close(); } catch {}
   stopMic(); stopPlayback();
 }
-$("btnMic").onclick = async () => {
+async function startMicFlow() {
   if (micWanted) return;
   if (!usingOwnKey() && usage.remainingMs() <= 0) { onLimitReached(); return; }
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -2316,8 +2457,9 @@ $("btnMic").onclick = async () => {
           `マイクを起動できませんでした：${name} ${e?.message || ""}`, 6000);
     return;
   }
-  startSession();
-};
+  if (split.on) startSplitSessions(); else startSession();
+}
+$("btnMic").onclick = startMicFlow;
 $("btnOff").onclick = () => { stopAll(); setState("off"); };
 $("btnAway").onclick = () => { stopAll(); setState("away"); };
 $("mascot3d").addEventListener("click", () => $("mascot").dispatchEvent(new Event("click")));
@@ -2476,7 +2618,7 @@ function applySubject() {
 document.querySelectorAll("[data-subject]").forEach((b) => b.addEventListener("click", () => {
   store.set("subject", b.dataset.subject); applySubject();
   logAdd("sys", "教科を " + SUBJECTS[b.dataset.subject] + " に変更");
-  if (micWanted && getMode() === "study") { // 教科の指示を入れ直すためにつなぎ直す
+  if (micWanted && getMode() === "study" && !split.on) { // 教科の指示を入れ直すためにつなぎ直す
     const old = session; session = null; ready = false; try { old?.close(); } catch {}
     stopPlayback(); startSession(); setState("thinking");
   }
@@ -2514,6 +2656,7 @@ function applyMode() {
   $("modeDesc").innerHTML = card ? `<b>${labelFor(mode)}</b>${card.dataset.desc}` : "";
   fidgetOn = mode === "dopa" || (mode === "my" && myFidget());
   applyLook();
+  if (split.on) chip.textContent = "分裂中";
 }
 function setMode(mode) {
   if (mode === "custom" && !customLoad()) { openCreator(); return; }   // まだ作っていないときは作成画面へ
@@ -2521,6 +2664,10 @@ function setMode(mode) {
   store.set("mode", mode);
   applyMode();
   $("menuScrim").classList.remove("open");
+  if (split.on) { // 分裂中は、合体したときのモードだけ覚えておく（A/Bは上のバーで変える）
+    toast("分裂中は A/B の性格を上のバーから変えてね", 4000);
+    return;
+  }
   const wasOn = micWanted;
   if (wasOn) { // マイクはそのままで、会話セッションだけ新しいモードでつなぎ直す
     const old = session; session = null; ready = false;
@@ -2533,6 +2680,496 @@ function setMode(mode) {
 }
 document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
 applyMode();
+
+/* ============ こえとも、分裂！ ============ */
+// A/B それぞれが別の Live セッションを持ち、相手の発言をテキストで渡し合って会話する。
+// ユーザーの声は「いま話した側」にだけ送る。AI どうしの番ではマイクを止め、合間に割り込める。
+const SPLIT_MODES = ["normal", "claimer", "reisho", "ishiki", "ronpa", "dopa", "inbou", "overprotect"];
+const SPLIT_NAMES = { a: "こえともA", b: "こえともB" };
+
+function splitModeIds() {
+  const ids = SPLIT_MODES.slice();
+  if (customLoad()) ids.push("custom");
+  if (myModeLoad()) ids.push("my");
+  return ids;
+}
+function splitInitSide(side) {
+  const ids = splitModeIds();
+  const defMode = side === "a" ? "normal" : (ids.includes("ronpa") ? "ronpa" : ids[0]);
+  const defVoice = side === "a" ? store.get("voice", "Aoede") : "Charon";
+  let mode = store.get("split." + side + ".mode", defMode);
+  let voice = store.get("split." + side + ".voice", defVoice);
+  if (!ids.includes(mode)) mode = defMode;
+  if (!VOICE_CHOICES.some((v) => v.id === voice)) voice = defVoice;
+  if (side === "b" && split.a && voice === split.a.voice) {
+    voice = VOICE_CHOICES.find((v) => v.id !== voice)?.id || voice;
+  }
+  split[side] = { side, mode, voice, ws: null, ready: false, out: "", state: "ready", talkEnv: 0, turnSeq: 0, lookKey: "" };
+}
+
+function updateSplitLabels() {
+  // 性格名は上のセレクトに出ているので、ここでは読み上げ用のラベルだけ更新する
+  if (!split.a || !split.b) return;
+  $("splitModeA").setAttribute("aria-label", "A の性格（" + labelFor(split.a.mode) + "）");
+  $("splitModeB").setAttribute("aria-label", "B の性格（" + labelFor(split.b.mode) + "）");
+}
+function fillSplitPicks() {
+  if (!split.a || !split.b) return;
+  const ids = splitModeIds();
+  for (const side of ["a", "b"]) {
+    const st = split[side];
+    if (!ids.includes(st.mode)) st.mode = ids[0];
+    const msel = $(side === "a" ? "splitModeA" : "splitModeB");
+    msel.innerHTML = "";
+    for (const id of ids) {
+      const o = document.createElement("option");
+      o.value = id; o.textContent = labelFor(id);
+      msel.appendChild(o);
+    }
+    msel.value = st.mode;
+    const vsel = $(side === "a" ? "splitVoiceA" : "splitVoiceB");
+    vsel.innerHTML = "";
+    for (const v of VOICE_CHOICES) {
+      const o = document.createElement("option");
+      o.value = v.id; o.textContent = v.label;
+      vsel.appendChild(o);
+    }
+    vsel.value = st.voice;
+  }
+  updateSplitLabels();
+}
+function refreshSplitLooks() {
+  for (const side of ["a", "b"]) {
+    const st = split[side];
+    if (!st) continue;
+    st.lookKey = "";
+    split3d[side]?.setLook(modeLook(st.mode));
+  }
+}
+function bindSplitPick(side) {
+  const msel = $(side === "a" ? "splitModeA" : "splitModeB");
+  const vsel = $(side === "a" ? "splitVoiceA" : "splitVoiceB");
+  msel.onchange = () => {
+    split[side].mode = msel.value;
+    store.set("split." + side + ".mode", msel.value);
+    updateSplitLabels(); refreshSplitLooks();
+    if (split.on && micWanted) restartSplitSessions("性格を変えました");
+  };
+  vsel.onchange = () => {
+    split[side].voice = vsel.value;
+    store.set("split." + side + ".voice", vsel.value);
+    if (split.on && micWanted) restartSplitSessions("声を変えました");
+  };
+}
+
+function applySplitUI() {
+  const on = split.on;
+  $("app").classList.toggle("split", on);
+  $("btnSplit").setAttribute("aria-pressed", String(on));
+  $("splitLabel").textContent = on ? "合体" : "分裂！";
+  if (on) {
+    fillSplitPicks();
+    $("modeChip").textContent = "分裂中";
+    $("modeChip").classList.add("on");
+    if (view3d) ensureSplit3D();
+  } else {
+    destroySplit3D();
+    mascot3d?.setVisible(!!view3d);
+    applyMode();
+    if (view3d) setView3d(true);
+  }
+  updateSplitLabels();
+}
+
+function closeSplitSessions() {
+  split.epoch++;
+  clearTimeout(split.timer);
+  split.busy = false; split.started = false; split.speaking = null;
+  split.userText = ""; split.userSpoke = false;
+  for (const side of ["a", "b"]) {
+    const st = split[side];
+    if (!st) continue;
+    const ws = st.ws;
+    st.ws = null; st.ready = false; st.out = ""; st.turnSeq++;
+    try { ws?.close(); } catch {}
+  }
+}
+function setSplit(on) {
+  if (on === split.on) return;
+  if (on) {
+    split.on = true;
+    const old = session; session = null; ready = false;
+    try { old?.close(); } catch {}
+    stopPlayback();
+    split.started = false; split.busy = false; split.userText = ""; split.userSpoke = false;
+    split.micSide = "a"; split.turn = null;
+    split.epoch++;
+    for (const side of ["a", "b"]) {
+      const st = split[side];
+      if (!st) continue;
+      const ws = st.ws; st.ws = null; st.ready = false; st.out = "";
+      st.state = micWanted ? "thinking" : "ready";
+      try { ws?.close(); } catch {}
+    }
+    applySplitUI();
+    toast("こえとも、分裂！ 会話の切れ目に話しかけると割り込めます", 4200);
+    if (!micWanted) startMicFlow(); else startSplitSessions();
+  } else {
+    closeSplitSessions();
+    split.on = false;
+    split.started = false;
+    applySplitUI();
+    if (micWanted) { setState("thinking"); startSession(); }
+    else setState("ready");
+    toast("合体しました");
+  }
+}
+$("btnSplit").onclick = () => setSplit(!split.on);
+$("btnSplit").title = "2人ぶんの会話なので、共有枠の残り時間は2倍で減ります";
+
+/* ---- 2本の Live セッション ---- */
+async function fetchSplitToken() {
+  let res = null;
+  try { res = await fetch(TOKEN_URL, { method: "POST" }); } catch { return { error: "network" }; }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { error: data.error || (res.status === 429 ? "busy" : "upstream") };
+  return data;
+}
+async function startSplitSessions() {
+  if (!split.on || !micWanted) return;
+  closeSplitSessions();
+  const epoch = split.epoch;
+  split.started = false; split.busy = false;
+  split.userText = ""; split.userSpoke = false;
+  split.a.state = "thinking"; split.b.state = "thinking";
+  setState("thinking");
+  const key = store.get("geminiKey");
+  let model = store.get("model", DEFAULT_MODEL), urls;
+  if (key) {
+    urls = [WS_URL + "?key=" + encodeURIComponent(key), WS_URL + "?key=" + encodeURIComponent(key)];
+  } else {
+    if (usage.remainingMs() <= 0) { onLimitReached(); return; }
+    const rs = await Promise.all([fetchSplitToken(), fetchSplitToken()]);
+    if (split.epoch !== epoch || !split.on || !micWanted) return;
+    const bad = rs.find((r) => !r.token);
+    if (bad) {
+      stopAll(); setState("sad");
+      toast(bad.error === "busy" ? "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね" :
+            bad.error === "slow_down" ? "ちょっと待って！1分ほどしてからもう一度押してね" :
+            bad.error === "not_configured" ? "共有の無料枠はまだ準備中です。設定から自分のキーを入れると話せます" :
+            bad.error === "network" ? "つながりませんでした（ネットを確認してね）" :
+            "つながりませんでした（共有枠）", 5500);
+      return;
+    }
+    urls = rs.map((r) => WS_URL_TOKEN + "?access_token=" + encodeURIComponent(r.token));
+    model = rs[0].model || model;
+  }
+  if (split.epoch !== epoch || !split.on || !micWanted) return;
+  sessionInfo.model = model; sessionInfo.key = key ? "own key" : "shared";
+  openSplitSide("a", urls[0], model, epoch);
+  openSplitSide("b", urls[1], model, epoch);
+}
+function openSplitSide(side, url, model, epoch) {
+  const st = split[side];
+  if (!st) return;
+  st.ready = false; st.out = ""; st.turnSeq++; st.state = "thinking";
+  const ws = new WebSocket(url);
+  st.ws = ws;
+  ws.onopen = () => {
+    if (split.epoch !== epoch || st.ws !== ws) return;
+    ws.send(JSON.stringify({
+      setup: {
+        model: "models/" + model,
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: st.voice } } },
+        },
+        systemInstruction: { parts: [{ text: splitPrompt(side) }] },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
+      },
+    }));
+  };
+  ws.onmessage = async (ev) => {
+    if (split.epoch !== epoch || st.ws !== ws) return;
+    const raw = typeof ev.data === "string" ? ev.data : await ev.data.text();
+    let msg; try { msg = JSON.parse(raw); } catch { return; }
+    onSplitMessage(side, msg, epoch);
+  };
+  ws.onerror = () => {};
+  ws.onclose = (ev) => {
+    if (split.epoch !== epoch || st.ws !== ws) return;
+    const wasReady = st.ready;
+    st.ws = null; st.ready = false;
+    if (!split.on || !micWanted || split.restarting) return;
+    if (!wasReady) {
+      // 接続そのものに失敗した（鍵・モデル・ネットなど）。ここでループしない。
+      stopAll(); setState("sad");
+      toast(/quota|exhaust|rate|resource/i.test(ev.reason || "") ? "いまみんなの無料枠が混んでるよ。少し待ってからまた話してね" : "つながりませんでした（分裂）", 5000);
+      return;
+    }
+    split.restarting = true;
+    toast("つなぎ直しています…");
+    setTimeout(() => {
+      split.restarting = false;
+      if (split.on && micWanted) startSplitSessions();
+    }, 1300);
+  };
+}
+function splitPrompt(side) {
+  const st = split[side];
+  const other = split[side === "a" ? "b" : "a"];
+  const myName = SPLIT_NAMES[side];
+  const otherName = SPLIT_NAMES[side === "a" ? "b" : "a"];
+  return [
+    promptForMode(st.mode),
+    "",
+    "【いまの状況】これは3人の会話です。",
+    "あなたは「" + myName + "」（性格: " + labelFor(st.mode) + "）。",
+    "会話相手は「" + otherName + "」（性格: " + labelFor(other.mode) + " / " + (MODE_SUMMARY[other.mode] || "") + "）、そしてユーザーがいます。",
+    "・" + otherName + "の発言は「" + otherName + "『…』」、ユーザーの発言は「ユーザー『…』」の形でテキストで届きます。",
+    "・相手やユーザーの言葉を拾って、1〜2文で短く返してください。",
+    "・あなたは" + myName + "自身のセリフだけを話してください。" + otherName + "のセリフや、ナレーション・地の文は言わないでください。",
+    "・同じことをくり返さず、相手の話を少し進めてください。",
+    "・危険な話、差別的な話、性的な話は避けてください。",
+  ].join("\n");
+}
+
+function beginSplitDialogue() {
+  if (!split.on || !micWanted || split.started) return;
+  if (!split.a?.ready || !split.b?.ready) return;
+  split.started = true;
+  split.a.state = "listening"; split.b.state = "listening";
+  setState("listening");
+  logAdd("sys", "分裂：A=" + labelFor(split.a.mode) + " / B=" + labelFor(split.b.mode));
+  sendSplitPrompt("a", "", "", true);
+}
+function sendSplitPrompt(side, text, userText = "", start = false) {
+  const st = split[side];
+  if (!st?.ready || st.ws?.readyState !== WebSocket.OPEN || !split.on || !micWanted) return;
+  const otherSide = side === "a" ? "b" : "a";
+  const otherName = SPLIT_NAMES[otherSide];
+  let body;
+  if (start) {
+    body = "（いまから" + otherName + "と会話を始めてください。あなたから" + otherName + "に、ひとこと話しかけて）";
+  } else {
+    body = text ? otherName + "『" + text + "』" : "（" + otherName + "は黙ってこちらを見ている）";
+    if (userText) body += "\nユーザー『" + userText + "』";
+    body += "\n（" + otherName + "に返事をして）";
+  }
+  st.turnSeq++; st.out = "";
+  split.turn = side; split.busy = true; split.micSide = side;
+  st.state = "thinking";
+  const other = split[otherSide];
+  if (other && other.state !== "speaking") other.state = "listening";
+  try {
+    st.ws.send(JSON.stringify({ clientContent: { turns: [{ role: "user", parts: [{ text: body }] }], turnComplete: true } }));
+  } catch (e) {
+    console.warn("split send", e);
+    split.busy = false;
+  }
+}
+function finishSplitTurn(side) {
+  const st = split[side];
+  if (!st || !st.ready) return;
+  const text = (st.out || "").trim();
+  st.out = "";
+  split.busy = false;
+  if (!playing.size && st.state === "speaking") st.state = "listening";
+  const userText = split.userText.trim();
+  if (userText) logAdd("user", userText);
+  if (text) logAdd("ai", SPLIT_NAMES[side] + "（" + labelFor(st.mode) + "）: " + text, st.mode);
+  if (!split.on || !micWanted) return;
+  const otherSide = side === "a" ? "b" : "a";
+  split.userText = ""; split.userSpoke = false;
+  clearTimeout(split.timer);
+  const waitStart = performance.now();
+  const tryNext = () => {
+    if (!split.on || !micWanted || split.busy) return;
+    if (playing.size) { split.timer = setTimeout(tryNext, 200); return; }
+    // ユーザーが話し始めていたら、その返事を少し待つ（ずっと待ち続けない）
+    const userSoon = performance.now() - split.userAt < 1100 || micLevel > .1;
+    if (userSoon && performance.now() - waitStart < 4500) { split.timer = setTimeout(tryNext, 250); return; }
+    sendSplitPrompt(otherSide, text, userText, false);
+  };
+  split.timer = setTimeout(tryNext, 1000);
+}
+function onSplitMessage(side, msg, epoch) {
+  if (split.epoch !== epoch) return;
+  const st = split[side];
+  if (!st) return;
+  if (msg.setupComplete) {
+    if (st.ready) return;
+    st.ready = true;
+    if (!usingOwnKey()) { usage.addSession(); usage.render(); }
+    if (split.a?.ready && split.b?.ready) beginSplitDialogue();
+    return;
+  }
+  if (msg.goAway) { toast("まもなくつなぎ直します"); return; }
+  const sc = msg.serverContent;
+  if (!sc) return;
+  if (sc.interrupted) {
+    stopPlayback();
+    st.state = "hearing";
+    split.busy = false;
+    return;
+  }
+  if (sc.inputTranscription?.text) {
+    split.micSide = side;
+    split.userText = (split.userText + sc.inputTranscription.text).slice(-600);
+    split.userAt = performance.now();
+    split.userSpoke = true;
+    clearTimeout(split.timer);
+  }
+  if (sc.outputTranscription?.text) st.out += sc.outputTranscription.text;
+  for (const part of sc.modelTurn?.parts || []) {
+    const d = part.inlineData;
+    if (d?.data && d.mimeType?.startsWith("audio/pcm")) {
+      const rate = parseInt(/rate=(\d+)/.exec(d.mimeType)?.[1] || "24000", 10);
+      enqueuePcm(d.data, rate, side);
+    }
+  }
+  if (sc.turnComplete) {
+    const seq = st.turnSeq;
+    setTimeout(() => {
+      if (split.epoch !== epoch || st.turnSeq !== seq) return;
+      finishSplitTurn(side);
+    }, 80);
+  }
+}
+
+/* ---- 表示（2D / 3D） ---- */
+function splitViewState(side) {
+  if (appState === "off" || appState === "away" || appState === "sad") return appState;
+  if (!micWanted) return "ready";
+  return split[side]?.state || "listening";
+}
+function updateSplitTalk() {
+  for (const side of ["a", "b"]) {
+    const st = split[side];
+    if (!st) continue;
+    const speaking = splitViewState(side) === "speaking";
+    st.talkEnv = lerp(st.talkEnv || 0, speaking ? outLevel : 0, .35);
+  }
+}
+function renderSplit2D(now) {
+  if (now - split.last2d < 50) return;
+  split.last2d = now;
+  for (const side of ["a", "b"]) {
+    const st = split[side];
+    if (!st) continue;
+    const state = splitViewState(side);
+    const expr = exprForMode(st.mode, state);
+    if (state === "speaking") expr.mouth.o = 4 + st.talkEnv * 26;
+    const { html } = charMarkup(st.mode, { ex: expr, state, blink, look: modeLook(st.mode) });
+    const bob = Math.sin(now / 900 + (side === "a" ? 0 : 1.7)) * 4 + (state === "speaking" ? Math.abs(Math.sin(now / 120)) * 2.5 : 0);
+    const tilt = expr.tilt + (side === "a" ? 2 : -2);
+    const svg = $(side === "a" ? "splitSvgA" : "splitSvgB");
+    svg.innerHTML = `<ellipse cx="290" cy="492" rx="250" ry="20" fill="#E9EBEE" opacity=".7"/>` +
+      `<g transform="translate(0 ${bob.toFixed(1)}) rotate(${tilt.toFixed(1)} 290 440)">${html}</g>`;
+    const half = $(side === "a" ? "splitHalfA" : "splitHalfB");
+    half.classList.toggle("speaking", state === "speaking");
+    half.classList.toggle("hearing", st.state === "hearing");
+    const pick = $(side === "a" ? "splitModeA" : "splitModeB").closest(".split-pick");
+    pick?.classList.toggle("speaking", state === "speaking");
+    pick?.classList.toggle("hearing", st.state === "hearing");
+  }
+}
+function renderSplit3D(now) {
+  if (now - split.last3d < 33) return;
+  split.last3d = now;
+  for (const side of ["a", "b"]) {
+    const inst = split3d[side], st = split[side];
+    if (!inst || !st) continue;
+    const state = splitViewState(side);
+    const expr = exprForMode(st.mode, state);
+    const look = modeLook(st.mode);
+    const key = st.mode + "|" + JSON.stringify(look);
+    if (st.lookKey !== key) { inst.setLook(look); st.lookKey = key; }
+    if (state === "speaking") expr.mouth.o = 4 + st.talkEnv * 26;
+    const fs = faceShapes(expr, blink, side === "a" ? 6 : -6, 0, expr.mouth);
+    fs.ebi = cosmetic === "ebifurai" ? 1 : 0;
+    inst.update({
+      now, state, tilt: expr.tilt + (state === "speaking" ? Math.sin(now / 130) * 1.5 : 0),
+      talkEnv: st.talkEnv, micLevel: 0, follow: false, ptr: { x: 0, y: 0 }, ptrActive: false,
+      face: { ...fs, beardD: BEARD_D, goateeD: GOATEE_D },
+    });
+    const half = $(side === "a" ? "splitHalfA" : "splitHalfB");
+    half.classList.toggle("speaking", state === "speaking");
+    half.classList.toggle("hearing", st.state === "hearing");
+    const pick = $(side === "a" ? "splitModeA" : "splitModeB").closest(".split-pick");
+    pick?.classList.toggle("speaking", state === "speaking");
+    pick?.classList.toggle("hearing", st.state === "hearing");
+  }
+}
+function renderSplit(now) {
+  if (!split.on) return;
+  updateSplitTalk();
+  if (view3d && split3d.a && split3d.b) renderSplit3D(now);
+  else renderSplit2D(now);
+}
+function ensureSplit3D() {
+  if (!split.on || !view3d) return Promise.resolve();
+  if (split3d.a && split3d.b) { $("splitStage").classList.add("ready"); return Promise.resolve(); }
+  if (split3d.loading) return split3d.loading;
+  const gen = split3d.gen;
+  const job = (async () => {
+    try {
+      const m = await import("./mascot3d.js");
+      const [a, b] = await Promise.all([
+        m.createMascot3D($("split3dA"), "3d/koetomo.glb", "3d/crown.glb", modeLook(split.a.mode)),
+        m.createMascot3D($("split3dB"), "3d/koetomo.glb", "3d/crown.glb", modeLook(split.b.mode)),
+      ]);
+      // 読み込んでいる間に 3D を切ったり canvas を作り直したりしていたら、作り直した側を捨てる
+      if (gen !== split3d.gen || !split.on || !view3d) {
+        try { a.destroy?.(); b.destroy?.(); } catch {}
+        return;
+      }
+      split3d.a = a; split3d.b = b;
+      split.a.lookKey = split.b.lookKey = "";
+      $("splitStage").classList.add("ready");
+    } catch (e) {
+      console.error("分裂3D", e);
+      toast("3D を読み込めませんでした（2Dで表示します）");
+      $("splitStage").classList.remove("ready");
+    } finally {
+      if (split3d.loading === job) split3d.loading = null;
+    }
+  })();
+  split3d.loading = job;
+  return job;
+}
+function destroySplit3D() {
+  split3d.gen++;
+  split3d.loading = null;
+  for (const side of ["a", "b"]) {
+    const inst = split3d[side];
+    if (inst?.destroy) { try { inst.destroy(); } catch {} }
+    split3d[side] = null;
+  }
+  // WebGL コンテキストを手放した canvas は再利用できないので、新しい canvas に差し替える
+  for (const id of ["split3dA", "split3dB"]) {
+    const cv = $(id);
+    if (cv) cv.replaceWith(cv.cloneNode(false));
+  }
+  $("splitStage").classList.remove("ready");
+}
+
+function restartSplitSessions(reason) {
+  if (!split.on || !micWanted) return;
+  closeSplitSessions();
+  stopPlayback();
+  toast(reason + "。つなぎ直しています…");
+  startSplitSessions();
+}
+
+splitInitSide("a");
+splitInitSide("b");
+fillSplitPicks();
+bindSplitPick("a");
+bindSplitPick("b");
+updateSplitLabels();
+
 
 /* ============ モードハブ（画面を斜めに分ける：右上=勉強・左下=その他のキャラ・まん中=ふつう） ============ */
 const hub = $("modeHub");
@@ -3089,13 +3726,14 @@ const usage = {
   lastTick: 0, warned10: false, warned1: false,
   // 共有枠でつながっている間だけ時間を数える
   tick(now) {
-    const active = !usingOwnKey() && ready && micWanted && session;
+    const splitN = split.on ? ["a", "b"].filter((s) => split[s]?.ready).length : 0;
+    const active = !usingOwnKey() && micWanted && (splitN > 0 || (ready && session));
     if (!active) { this.lastTick = 0; return; }
     if (!this.lastTick) { this.lastTick = now; return; }
     const dt = Math.min(2000, now - this.lastTick);
     if (dt < 1000) return;
     this.lastTick = now;
-    const u = this.load(); u.usedMs = Math.min(DAILY_MIN * 60000, u.usedMs + dt); this.save(u);
+    const u = this.load(); u.usedMs = Math.min(DAILY_MIN * 60000, u.usedMs + dt * Math.max(1, splitN)); this.save(u);
     const left = this.remainingMs();
     if (!this.warned10 && left <= 10 * 60000 && left > 60000) { this.warned10 = true; toast("今日の残りはあと10分だよ"); }
     if (!this.warned1 && left <= 60000 && left > 0) { this.warned1 = true; toast("あと1分で今日の分はおしまい！"); }
@@ -3307,6 +3945,7 @@ function pickMime() {
 }
 
 async function startRec() {
+  if (split.on) { toast("分裂中は録画できません。合体してからにしてね", 4000); return; }
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast("このブラウザは録画に対応していません", 4000); return; }
   const canvas = document.createElement("canvas"); canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext("2d");
@@ -3388,7 +4027,7 @@ if (MOCK) {
     if (q === "3d" || (q !== "2d" && saved === "1")) setView3d(true); }
   setState("ready");
   wakeControls();
-  const loop = (now) => { readLevel(); render(now, false); if (rec2) drawRecFrame(now); requestAnimationFrame(loop); };
+  const loop = (now) => { readLevel(); render(now, false); if (split.on) renderSplit(now); if (rec2) drawRecFrame(now); requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
   usage.render();
 }

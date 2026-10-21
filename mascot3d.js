@@ -107,7 +107,12 @@ export async function createMascot3D(canvas, url, crownUrl = url.replace(/[^/]*$
   async function loadEbi() {
     try {
       const eg = await new GLTFLoader().loadAsync(url.replace(/[^/]*$/, "ebifurai.glb"));
-      ebi = eg.scene; ebi.userData.base = ebi.position.clone();
+      // 体の中心を軸に大きくしたい（原点＝足元のままだと足元から伸びて見える）
+      const wrap = new THREE.Group();
+      wrap.position.set(0, .85, 0);
+      eg.scene.position.y -= .85;
+      wrap.add(eg.scene);
+      ebi = wrap; ebi.userData.base = ebi.position.clone();
       const ems = []; ebi.traverse((o) => { if (o.isMesh) ems.push(o); });
       const mats = new Set();
       ems.forEach((o) => { mats.add(o.material); o.add(new THREE.Mesh(o.geometry, inkMat)); });
@@ -140,7 +145,7 @@ export async function createMascot3D(canvas, url, crownUrl = url.replace(/[^/]*$
     camera.userData.dist = dist;
     camera.updateProjectionMatrix();
   }
-  new ResizeObserver(resize).observe(canvas); resize();
+  const ro = new ResizeObserver(resize); ro.observe(canvas); resize();
 
   const sq = spring(.10, .80), lean = spring(.06, .86), jelly = spring(.09, .78), hop = spring(.14, .74);
   const yaw = spring(.05, .86);
@@ -296,6 +301,20 @@ export async function createMascot3D(canvas, url, crownUrl = url.replace(/[^/]*$
       screenPos.x = proj.x; screenPos.y = proj.y;
       renderer.render(scene, camera);
       return screenPos;
+    },
+    // 分裂モードを閉じるときなどに、GPU のコンテキストとメモリを返す
+    destroy() {
+      try { ro.disconnect(); } catch {}
+      try { renderer.dispose(); } catch {}
+      try { pmrem.dispose?.(); } catch {}
+      try {
+        scene.traverse((o) => {
+          if (o.geometry) o.geometry.dispose?.();
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          for (const m of mats) m?.dispose?.();
+        });
+      } catch {}
+      try { renderer.forceContextLoss?.(); } catch {}
     },
   };
 }
